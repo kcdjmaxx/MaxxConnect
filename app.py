@@ -700,6 +700,10 @@ def campaign_send(campaign_id):
                 from backend.config import Config
                 from backend.image_handler import ImageHandler
 
+                # DEBUG: Log template being used
+                print(f"DEBUG: Using template: {campaign.template_name}")
+                print(f"DEBUG: Environment: {Config.ENV}")
+
                 template_vars = {
                     'customer_name': 'Test Customer',
                     'unsubscribe_link': unsubscribe_link
@@ -709,22 +713,39 @@ def campaign_send(campaign_id):
                 if Config.is_development():
                     template_vars['logo_base64'] = ImageHandler.get_image_url('FNFWebLogo200x50.png').replace('data:image/png;base64,', '')
                     template_vars['hero_image_base64'] = ImageHandler.get_image_url('FNFFront600x300.png').replace('data:image/png;base64,', '')
+                    print("DEBUG: Using base64 images (development mode)")
                 else:
                     template_vars['logo_url'] = url_for('static', filename='images/FNFWebLogo200x50.png', _external=True)
                     template_vars['hero_image_url'] = url_for('static', filename='images/FNFFront600x300.png', _external=True)
+                    print(f"DEBUG: Using external image URLs (production mode)")
+                    print(f"DEBUG: logo_url = {template_vars['logo_url']}")
+                    print(f"DEBUG: hero_image_url = {template_vars['hero_image_url']}")
 
                 # Only include QR code if campaign has it enabled
                 if campaign.has_qr_code:
                     template_vars['qr_code_base64'] = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
 
+                print(f"DEBUG: Template vars keys: {list(template_vars.keys())}")
+
                 # Render fresh from template file with all variables
-                personalized_html = render_template(
-                    campaign.template_name,
-                    **template_vars
-                )
+                print("DEBUG: About to render template...")
+                try:
+                    personalized_html = render_template(
+                        campaign.template_name,
+                        **template_vars
+                    )
+                    print(f"DEBUG: Template rendered successfully. HTML length: {len(personalized_html)}")
+                    print(f"DEBUG: First 200 chars of HTML: {personalized_html[:200]}")
+                except Exception as render_error:
+                    print(f"ERROR: Template rendering failed: {str(render_error)}")
+                    import traceback
+                    traceback.print_exc()
+                    raise
 
                 # Send test email
+                print("DEBUG: About to send email...")
                 result = send_email(test_email, 'Test Customer', campaign.subject, personalized_html)
+                print(f"DEBUG: Send result: {result}")
 
                 if result.get('success'):
                     flash(f'✓ Test email sent successfully to {test_email}! (Status: {result.get("status_code", "N/A")})', 'success')
@@ -733,6 +754,9 @@ def campaign_send(campaign_id):
 
                 return redirect('/campaigns')
             except Exception as e:
+                print(f"ERROR: Exception in campaign send: {str(e)}")
+                import traceback
+                traceback.print_exc()
                 flash(f'Error sending test email: {str(e)}', 'error')
                 return redirect('/campaigns')
 
