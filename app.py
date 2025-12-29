@@ -684,10 +684,21 @@ def campaign_send(campaign_id):
                 return redirect(f'/campaign/send-confirm/{campaign_id}')
 
             try:
-                # Generate test email
+                # Get the real customer for generating unsubscribe link
+                test_customer = Customer.find_by_email(db, test_email)
+
+                # Generate test email with working unsubscribe link
+                if test_customer:
+                    unsubscribe_link = url_for('unsubscribe',
+                                              email=test_customer.email,
+                                              token=test_customer.get_unsubscribe_token(),
+                                              _external=True)
+                else:
+                    unsubscribe_link = url_for('unsubscribe', _external=True)
+
                 template_vars = {
                     'customer_name': 'Test Customer',
-                    'unsubscribe_link': '#test-unsubscribe'
+                    'unsubscribe_link': unsubscribe_link
                 }
 
                 # Only include QR code if campaign has it enabled
