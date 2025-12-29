@@ -8,7 +8,7 @@ load_dotenv()
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
-BUSINESS_NAME = os.getenv('SENDER_NAME')
+BUSINESS_NAME = os.getenv('BUSINESS_NAME')
 BASE_URL = os.getenv('BASE_URL')
 
 def send_sms(to_phone, message, include_optout=True):

@@ -122,7 +122,7 @@ def preview_email():
             </div>
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ccc;
                         font-size: 12px; color: #666; text-align: center;">
-                <p>{os.getenv('SENDER_NAME')}<br>
+                <p>{os.getenv('BUSINESS_NAME')}<br>
                 {os.getenv('BUSINESS_ADDRESS')}</p>
                 <p><a href="#" style="color: #666;">Unsubscribe from this list</a></p>
             </div>
@@ -222,7 +222,7 @@ def sms_preview():
             preview_message = message
             # Show character count
             char_count = len(message)
-            optout_addition = f"\n\nReply STOP to unsubscribe. - {os.getenv('SENDER_NAME')}"
+            optout_addition = f"\n\nReply STOP to unsubscribe. - {os.getenv('BUSINESS_NAME')}"
             total_chars = char_count + len(optout_addition)
 
             return render_template('sms_preview.html',
