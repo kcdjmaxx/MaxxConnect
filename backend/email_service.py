@@ -64,19 +64,18 @@ def render_email_template(template_path, customer, custom_body):
 def send_test_email(test_email, subject, custom_body):
     """Send test email to yourself"""
 
-    # Create temporary customer object for rendering
-    temp_customer = Customer(
-        id=0,
-        email=test_email,
-        name="Test User"
-    )
-
-    # Render email
-    html_content = render_email_template(
-        'templates/email/base_email.html',
-        temp_customer,
-        custom_body
-    )
+    # Build simple HTML email with footer
+    html_content = f"""
+    <div style="background-color: white; padding: 2rem; border-radius: 8px;">
+        {custom_body}
+    </div>
+    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ccc;
+                font-size: 12px; color: #666; text-align: center;">
+        <p>{Config.SENDER_NAME}<br>
+        {Config.BUSINESS_ADDRESS}</p>
+        <p><a href="{Config.BASE_URL}/unsubscribe" style="color: #666;">Unsubscribe from this list</a></p>
+    </div>
+    """
 
     # Send
     result = send_email(test_email, "Test User", subject, html_content)
