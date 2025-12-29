@@ -709,6 +709,8 @@ def campaign_send(campaign_id):
                     'unsubscribe_link': unsubscribe_link
                 }
 
+                print(f"DEBUG: unsubscribe_link = {unsubscribe_link}")
+
                 # Add image URLs based on environment
                 if Config.is_development():
                     template_vars['logo_base64'] = ImageHandler.get_image_url('FNFWebLogo200x50.png').replace('data:image/png;base64,', '')
