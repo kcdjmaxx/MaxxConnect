@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Campaigns{% endblock %}
+
+{% block content %}
+<h1>Email Campaigns</h1>
+
+{% if message %}
+<div class="message {{ message_type }}">{{ message }}</div>
+{% endif %}
+
+<div style="margin-bottom: 20px;">
+    <a href="/campaign/new" class="btn btn-primary">Create New Campaign</a>
+</div>
+
+{% if campaigns %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>Campaign Name</th>
+            <th>Subject</th>
+            <th>Template</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for campaign in campaigns %}
+        <tr>
+            <td>
+                <a href="/campaign/edit/{{ campaign.id }}" class="campaign-name">
+                    {{ campaign.name or 'Untitled' }}
+                </a>
+            </td>
+            <td>{{ campaign.subject }}</td>
+            <td>{{ campaign.template_name or 'N/A' }}</td>
+            <td>
+                <span class="badge badge-{{ campaign.status }}">
+                    {{ campaign.status or 'draft' }}
+                </span>
+            </td>
+            <td>{{ campaign.created_at.strftime('%Y-%m-%d %H:%M') if campaign.created_at else 'N/A' }}</td>
+            <td class="actions">
+                <a href="/campaign/preview/{{ campaign.id }}" class="btn btn-sm" title="Preview">👁️</a>
+                {% if campaign.status == 'draft' %}
+                <a href="/campaign/send-confirm/{{ campaign.id }}" class="btn btn-sm btn-success" title="Send">📧</a>
+                {% endif %}
+                <form method="POST" action="/campaign/delete/{{ campaign.id }}" style="display: inline;">
+                    <button type="submit" class="btn btn-sm btn-danger"
+                            onclick="return confirm('Are you sure you want to delete &quot;{{ campaign.name }}&quot;? This cannot be undone.')"
+                            title="Delete">
+                        🗑️
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="card">
+    <p>No campaigns yet. <a href="/campaign/new">Create your first campaign</a>!</p>
+</div>
+{% endif %}
+
+<style>
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.table th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px;
+    text-align: left;
+}
+.table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+.badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+.badge-draft {
+    background: #f0f0f0;
+    color: #666;
+}
+.badge-sent {
+    background: #4caf50;
+    color: white;
+}
+.badge-scheduled {
+    background: #2196f3;
+    color: white;
+}
+.btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+    border: none;
+    font-size: 14px;
+}
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+.btn-sm {
+    padding: 4px 12px;
+    font-size: 12px;
+    background: #f0f0f0;
+    color: #333;
+}
+.btn-success {
+    background: #4caf50;
+    color: white;
+}
+.btn-danger {
+    background: #f44336;
+    color: white;
+}
+.btn-danger:hover {
+    background: #d32f2f;
+}
+.campaign-name {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+}
+.campaign-name:hover {
+    text-decoration: underline;
+    color: #764ba2;
+}
+.actions {
+    white-space: nowrap;
+}
+.actions form {
+    display: inline;
+}
+.message {
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+.message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+</style>
+{% endblock %}

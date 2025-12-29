@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}SMS Preview & Test{% endblock %}
+
+{% block content %}
+<h1>SMS Preview & Test</h1>
+
+<div class="card">
+    {% if sms_message %}
+    <div class="alert {{ message_type }}">
+        {{ sms_message }}
+    </div>
+    {% endif %}
+
+    <div class="info-box">
+        <strong>SMS Character Limits:</strong><br>
+        - Single SMS: 160 characters<br>
+        - The opt-out message "Reply STOP to unsubscribe. - Your Business" is automatically added<br>
+        - Keep your message under 120 characters to fit in one SMS
+    </div>
+
+    <form method="POST" action="/sms-preview">
+        <div class="form-group">
+            <label for="message">SMS Message</label>
+            <textarea id="message" name="message" style="min-height: 100px; font-family: Arial;" required>{{ message or 'Check out our special offer! Show this text at checkout for 20% off your purchase.' }}</textarea>
+            {% if char_count %}
+            <small>Message: {{ char_count }} chars | With opt-out: {{ total_chars }} chars
+            {% if total_chars > 160 %}
+            <span style="color: red;">(Will be sent as {{ ((total_chars / 160) | round(0, 'ceil')) | int }} SMS messages)</span>
+            {% else %}
+            <span style="color: green;">(Fits in 1 SMS)</span>
+            {% endif %}
+            </small>
+            {% endif %}
+        </div>
+
+        <div class="button-group">
+            <button type="submit" name="action" value="preview">Preview SMS</button>
+            <button type="submit" name="action" value="test" class="secondary">Send Test SMS</button>
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+            <label for="test_phone">Test Phone Number (for sending test)</label>
+            <input type="tel" id="test_phone" name="test_phone" value="{{ test_phone or '' }}"
+                   placeholder="+11234567890 or 5551234567">
+            <small>Format: +11234567890 (with country code) or 5551234567 (US number)</small>
+        </div>
+    </form>
+
+    {% if preview_message %}
+    <h2 style="margin-top: 2rem;">Preview</h2>
+    <div class="preview-box" style="font-family: Arial; background-color: #e5e5ea; padding: 1rem; border-radius: 18px; max-width: 300px;">
+        <div style="background-color: #0b93f6; color: white; padding: 0.75rem; border-radius: 18px; margin-bottom: 0.5rem;">
+            {{ preview_message }}
+
+Reply STOP to unsubscribe. - {{ session.get('SENDER_NAME', 'Your Business') }}
+        </div>
+        <small style="color: #666;">Preview of how your SMS will appear</small>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Important SMS Regulations</h2>
+    <ul style="line-height: 1.8;">
+        <li>You must have <strong>explicit consent</strong> before sending SMS to customers</li>
+        <li>All messages must include opt-out instructions (automatically added)</li>
+        <li>You must honor STOP requests immediately</li>
+        <li>Recommended sending hours: 9 AM - 8 PM local time</li>
+        <li>SMS costs approximately $0.0079 per message</li>
+    </ul>
+</div>
+{% endblock %}

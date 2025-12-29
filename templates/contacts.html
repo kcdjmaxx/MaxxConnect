@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Contacts{% endblock %}
+
+{% block content %}
+<h1>All Contacts</h1>
+
+<div class="card">
+    {% if customers %}
+    <table>
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Name</th>
+                <th>Email Status</th>
+                <th>SMS Status</th>
+                <th>Segments</th>
+                <th>Joined</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in customers %}
+            <tr>
+                <td>{{ customer.email }}</td>
+                <td>{{ customer.phone or '-' }}</td>
+                <td>{{ customer.name or '-' }}</td>
+                <td>
+                    {% if customer.subscribed %}
+                    <span style="color: green;">✓ Subscribed</span>
+                    {% else %}
+                    <span style="color: #999;">✗ Unsubscribed</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if customer.phone %}
+                        {% if customer.sms_subscribed %}
+                        <span style="color: green;">✓ SMS On</span>
+                        {% else %}
+                        <span style="color: #999;">✗ SMS Off</span>
+                        {% endif %}
+                    {% else %}
+                    <span style="color: #ccc;">-</span>
+                    {% endif %}
+                </td>
+                <td>{{ customer.segments or '-' }}</td>
+                <td>{{ customer.opted_in_date.strftime('%Y-%m-%d') if customer.opted_in_date else '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No contacts yet. <a href="/import">Import some contacts</a> to get started!</p>
+    {% endif %}
+</div>
+{% endblock %}

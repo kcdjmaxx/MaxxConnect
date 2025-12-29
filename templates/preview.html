@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Preview & Test Email{% endblock %}
+
+{% block content %}
+<h1>Preview & Test Email</h1>
+
+<div class="card">
+    {% if message %}
+    <div class="alert {{ message_type }}">
+        {{ message }}
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/preview">
+        <div class="form-group">
+            <label for="subject">Email Subject</label>
+            <input type="text" id="subject" name="subject" value="{{ subject or '' }}"
+                   placeholder="Special Offer Just for You!" required>
+        </div>
+
+        <div class="form-group">
+            <label for="email_body">Email Content (HTML)</label>
+            <div class="info-box">
+                You can use HTML here. The content will be wrapped in the base template with unsubscribe link.
+            </div>
+            <textarea id="email_body" name="email_body" required>{{ email_body or '<h2>Special Deal!</h2>\n<p>Check out our amazing offer!</p>\n<p>Your unique QR code will appear here in actual campaigns.</p>' }}</textarea>
+        </div>
+
+        <div class="button-group">
+            <button type="submit" name="action" value="preview">Preview Email</button>
+            <button type="submit" name="action" value="test" class="secondary">Send Test Email</button>
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+            <label for="test_email">Test Email Address (for sending test)</label>
+            <input type="email" id="test_email" name="test_email" value="{{ test_email or '' }}"
+                   placeholder="you@example.com">
+        </div>
+    </form>
+
+    {% if preview_html %}
+    <h2 style="margin-top: 2rem;">Preview</h2>
+    <div class="preview-box">
+        {{ preview_html|safe }}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

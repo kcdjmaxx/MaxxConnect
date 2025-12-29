@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Import Contacts{% endblock %}
+
+{% block content %}
+<h1>Import Contacts from CSV</h1>
+
+<div class="card">
+    {% if message %}
+    <div class="alert {{ message_type }}">
+        {{ message }}
+    </div>
+    {% endif %}
+
+    {% if stats %}
+    <div class="alert success">
+        <strong>Import completed!</strong><br>
+        Total rows processed: {{ stats.total_rows }}<br>
+        New contacts added: {{ stats.added }}<br>
+        Existing contacts updated: {{ stats.updated }}
+    </div>
+    {% endif %}
+
+    <div class="info-box">
+        <strong>CSV Formats Supported:</strong><br>
+        <strong>1. Simple format:</strong> <code>email,name,phone</code> (name and phone are optional)<br>
+        <strong>2. Square POS export:</strong> Automatically detected and imported<br><br>
+        <strong>Example (Simple):</strong><br>
+        <code>
+        email,name,phone<br>
+        john@example.com,John Doe,+11234567890<br>
+        jane@example.com,Jane Smith,5551234567<br>
+        bob@example.com,Bob Jones,
+        </code><br>
+        <small>Phone numbers can be in format: +11234567890 or 5551234567 (US numbers). Square exports are automatically converted.</small>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="csvfile">Choose CSV File</label>
+            <input type="file" id="csvfile" name="csvfile" accept=".csv" required>
+        </div>
+
+        <div class="form-group">
+            <label for="segment">Segment Tag (optional)</label>
+            <input type="text" id="segment" name="segment" placeholder="e.g., newsletter, promo2024">
+        </div>
+
+        <button type="submit">Import Contacts</button>
+    </form>
+</div>
+{% endblock %}

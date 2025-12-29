@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Campaign{% endblock %}
+
+{% block content %}
+<h1>Edit Campaign</h1>
+
+{% if message %}
+<div class="message {{ message_type }}">{{ message }}</div>
+{% endif %}
+
+<div class="card">
+    <form method="POST" action="/campaign/edit/{{ campaign.id }}">
+        <div class="form-group">
+            <label for="name">Campaign Name</label>
+            <input type="text" id="name" name="name" required
+                   value="{{ campaign.name }}"
+                   placeholder="e.g., Monday Burger Special - Dec 2024">
+        </div>
+
+        <div class="form-group">
+            <label for="subject">Email Subject Line</label>
+            <input type="text" id="subject" name="subject" required
+                   value="{{ campaign.subject }}"
+                   placeholder="e.g., 🍔 DOUBLE UP THIS MONDAY at Fric & Frac!">
+        </div>
+
+        <div class="form-group">
+            <label for="template">Select Email Template</label>
+            <select id="template" name="template" required>
+                <option value="">-- Choose a template --</option>
+                {% for template in templates %}
+                <option value="{{ template.filename }}"
+                        {% if template.filename == campaign.template_name %}selected{% endif %}>
+                    {{ template.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <small style="color: #666; display: block; margin-top: 4px;">
+                Current: {{ campaign.template_name or 'None' }}
+            </small>
+        </div>
+
+        <div class="form-group qr-toggle-section">
+            <label>
+                <input type="checkbox" name="has_qr_code" id="has_qr_code"
+                       {% if campaign.has_qr_code %}checked{% endif %}
+                       {% if campaign.status == 'sent' %}disabled{% endif %}>
+                Include QR Code for redemption
+            </label>
+            <small class="help-text">
+                Each customer will receive a unique QR code for tracking redemptions
+                {% if campaign.status == 'sent' %}
+                <br><strong>Note:</strong> Cannot change QR setting for sent campaigns
+                {% endif %}
+            </small>
+        </div>
+
+        <div class="alert alert-info">
+            <strong>Note:</strong> This campaign was created on {{ campaign.created_at.strftime('%Y-%m-%d %H:%M') }}.
+            {% if campaign.status == 'sent' %}
+            <br><strong>Status:</strong> Already sent on {{ campaign.sent_date.strftime('%Y-%m-%d %H:%M') if campaign.sent_date else 'Unknown' }}.
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            <a href="/campaigns" class="btn btn-secondary">Cancel</a>
+            <button type="submit" name="action" value="preview" class="btn btn-secondary">
+                Preview Changes
+            </button>
+            <button type="submit" name="action" value="save" class="btn btn-primary">
+                Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+.card {
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.form-group {
+    margin-bottom: 20px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+.alert {
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+.alert-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #eee;
+}
+.btn {
+    padding: 12px 24px;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+.message {
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+.message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+</style>
+{% endblock %}

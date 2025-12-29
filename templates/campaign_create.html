@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Create Campaign{% endblock %}
+
+{% block content %}
+<h1>Create New Campaign</h1>
+
+{% if message %}
+<div class="message {{ message_type }}">{{ message }}</div>
+{% endif %}
+
+<div class="card">
+    <form method="POST" action="/campaign/new">
+        <div class="form-group">
+            <label for="name">Campaign Name</label>
+            <input type="text" id="name" name="name" required
+                   placeholder="e.g., Monday Burger Special - Dec 2024">
+        </div>
+
+        <div class="form-group">
+            <label for="subject">Email Subject Line</label>
+            <input type="text" id="subject" name="subject" required
+                   placeholder="e.g., 🍔 DOUBLE UP THIS MONDAY at Fric & Frac!">
+        </div>
+
+        <div class="form-group">
+            <label for="template">Select Email Template</label>
+            <select id="template" name="template" required onchange="updatePreview(this.value)">
+                <option value="">-- Choose a template --</option>
+                {% for template in templates %}
+                <option value="{{ template.filename }}">{{ template.name }}</option>
+                {% endfor %}
+            </select>
+            <small style="color: #666; display: block; margin-top: 4px;">
+                Choose from your email templates
+            </small>
+        </div>
+
+        <div class="form-group qr-toggle-section">
+            <label>
+                <input type="checkbox" name="has_qr_code" id="has_qr_code">
+                Include QR Code for redemption
+            </label>
+            <small class="help-text">
+                Each customer will receive a unique QR code for tracking redemptions
+            </small>
+        </div>
+
+        <div class="form-group">
+            <label for="segment">Target Audience</label>
+            <select id="segment" name="segment">
+                <option value="all">All Subscribers ({{ total_subscribers }})</option>
+                <option value="email_only">Email Only ({{ email_only }})</option>
+                <option value="sms_only">SMS Only ({{ sms_only }})</option>
+                <option value="both">Email + SMS ({{ both }})</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="test_mode" id="test_mode">
+                Test Mode (Send to test email only)
+            </label>
+        </div>
+
+        <div class="form-group" id="test-email-group" style="display: none;">
+            <label for="test_email">Test Email Address</label>
+            <input type="email" id="test_email" name="test_email"
+                   placeholder="your@email.com">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" name="action" value="preview" class="btn btn-secondary">
+                Preview Campaign
+            </button>
+            <button type="submit" name="action" value="save" class="btn btn-primary">
+                Save as Draft
+            </button>
+            <button type="submit" name="action" value="send" class="btn btn-success" id="send-btn"
+                    onclick="return confirmSend()">
+                <span id="send-btn-text">Send Campaign</span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+.card {
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.form-group {
+    margin-bottom: 20px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+.form-group input[type="checkbox"] {
+    margin-right: 8px;
+}
+.qr-toggle-section {
+    background: #f8f9fa;
+    padding: 16px;
+    border-radius: 4px;
+    border-left: 4px solid #667eea;
+}
+.help-text {
+    display: block;
+    color: #666;
+    font-size: 13px;
+    margin-top: 4px;
+    margin-left: 24px;
+}
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #eee;
+}
+.btn {
+    padding: 12px 24px;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+.btn-success {
+    background: #4caf50;
+    color: white;
+}
+.message {
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+.message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+</style>
+
+<script>
+// Show/hide test email field based on test mode checkbox
+document.getElementById('test_mode').addEventListener('change', function(e) {
+    const testEmailGroup = document.getElementById('test-email-group');
+    const testEmailInput = document.getElementById('test_email');
+    const sendBtnText = document.getElementById('send-btn-text');
+    const sendBtn = document.getElementById('send-btn');
+
+    if (e.target.checked) {
+        testEmailGroup.style.display = 'block';
+        testEmailInput.required = true;
+        sendBtnText.textContent = '📧 Send Test Email Only';
+        sendBtn.style.background = '#ff9800'; // Orange color for test mode
+    } else {
+        testEmailGroup.style.display = 'none';
+        testEmailInput.required = false;
+        sendBtnText.textContent = 'Send Campaign';
+        sendBtn.style.background = '#4caf50'; // Green for normal send
+    }
+});
+
+// Confirm send with appropriate message
+function confirmSend() {
+    const testMode = document.getElementById('test_mode').checked;
+    const testEmail = document.getElementById('test_email').value;
+    const segment = document.getElementById('segment').options[document.getElementById('segment').selectedIndex].text;
+
+    if (testMode) {
+        if (!testEmail) {
+            alert('Please enter a test email address!');
+            return false;
+        }
+        return confirm(`Send TEST email to: ${testEmail}\n\nThis will NOT send to your subscribers.`);
+    } else {
+        return confirm(`⚠️ SEND TO ALL SUBSCRIBERS?\n\nTarget: ${segment}\n\nThis will send real emails. Continue?`);
+    }
+}
+
+// Template preview (optional enhancement)
+function updatePreview(templateFilename) {
+    // You can add AJAX preview here later
+    console.log('Selected template:', templateFilename);
+}
+</script>
+{% endblock %}

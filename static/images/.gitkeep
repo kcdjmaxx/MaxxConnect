@@ -1,0 +1,19 @@
+# Images Directory
+
+This directory stores static images for the Flask application.
+
+## Usage
+
+**Local Development:**
+- Reference in templates: `/static/images/filename.png`
+- Served at: `http://localhost:5001/static/images/filename.png`
+
+**Production (Railway.app):**
+- Served at: `https://your-app.railway.app/static/images/filename.png`
+- Use these URLs in email templates instead of base64 encoding
+
+## Recommended Images
+
+- `logo.png` - Business logo for emails and web UI
+- `header-banner.png` - Email template header
+- `favicon.ico` - Website favicon
