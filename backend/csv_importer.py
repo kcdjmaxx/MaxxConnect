@@ -85,7 +85,7 @@ def import_csv(file_path, segment_tag=None):
                     phone = formatted
 
             # Check if customer exists
-            existing = db.query(Customer).filter_by(email=email).first()
+            existing = Customer.find_by_email(db, email)
 
             if existing:
                 # Update name if provided and not already set

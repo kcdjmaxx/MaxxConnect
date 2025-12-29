@@ -30,6 +30,11 @@ class Customer(Base):
         """Encrypt email when writing"""
         self._email_encrypted = encrypt_string(value) if value else None
 
+    @email.expression
+    def email(cls):
+        """Allow querying by encrypted email"""
+        return cls._email_encrypted
+
     # Phone property with automatic encryption/decryption
     @hybrid_property
     def phone(self):
@@ -40,6 +45,11 @@ class Customer(Base):
     def phone(self, value):
         """Encrypt phone when writing"""
         self._phone_encrypted = encrypt_string(value) if value else None
+
+    @phone.expression
+    def phone(cls):
+        """Allow querying by encrypted phone"""
+        return cls._phone_encrypted
 
     # Email subscription
     subscribed = Column(Boolean, default=True)
@@ -67,6 +77,18 @@ class Customer(Base):
         """Generate secure SMS opt-out token"""
         data = f"{self.id}:{self.phone}".encode()
         return hashlib.sha256(data).hexdigest()
+
+    @classmethod
+    def find_by_email(cls, db_session, email):
+        """Find customer by email (handles encryption)"""
+        encrypted_email = encrypt_string(email)
+        return db_session.query(cls).filter(cls._email_encrypted == encrypted_email).first()
+
+    @classmethod
+    def find_by_phone(cls, db_session, phone):
+        """Find customer by phone (handles encryption)"""
+        encrypted_phone = encrypt_string(phone)
+        return db_session.query(cls).filter(cls._phone_encrypted == encrypted_phone).first()
 
 class Campaign(Base):
     __tablename__ = 'campaigns'

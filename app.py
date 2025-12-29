@@ -183,7 +183,7 @@ def unsubscribe():
 
     db = get_db()
     try:
-        customer = db.query(Customer).filter_by(email=email).first()
+        customer = Customer.find_by_email(db, email)
 
         if not customer:
             return render_template('unsubscribe.html',
@@ -278,7 +278,7 @@ def sms_optout():
         if 'STOP' in message_body or 'UNSUBSCRIBE' in message_body:
             db = get_db()
             try:
-                customer = db.query(Customer).filter_by(phone=from_phone).first()
+                customer = Customer.find_by_phone(db, from_phone)
 
                 if customer:
                     customer.sms_subscribed = False
@@ -302,7 +302,7 @@ def sms_optout():
 
     db = get_db()
     try:
-        customer = db.query(Customer).filter_by(phone=phone).first()
+        customer = Customer.find_by_phone(db, phone)
 
         if not customer:
             return render_template('unsubscribe.html',
@@ -807,7 +807,7 @@ def signup():
             # Check if customer already exists by email
             existing_customer = None
             if email:
-                existing_customer = db.query(Customer).filter_by(email=email).first()
+                existing_customer = Customer.find_by_email(db, email)
 
             if existing_customer:
                 # Update existing customer
