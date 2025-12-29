@@ -14,7 +14,10 @@
       "Bash(git init:*)",
       "Bash(git add:*)",
       "Bash(git branch:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch:*)",
+      "Bash(git diff-index:*)",
+      "Bash(git update-index:*)"
     ]
   }
 }
