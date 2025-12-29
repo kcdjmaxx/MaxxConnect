@@ -701,12 +701,24 @@ def campaign_send(campaign_id):
                     'unsubscribe_link': unsubscribe_link
                 }
 
+                # Add image URLs based on environment
+                from backend.config import Config
+                from backend.image_handler import ImageHandler
+
+                if Config.is_development():
+                    template_vars['logo_base64'] = ImageHandler.get_image_url('FNFWebLogo200x50.png').replace('data:image/png;base64,', '')
+                    template_vars['hero_image_base64'] = ImageHandler.get_image_url('FNFFront600x300.png').replace('data:image/png;base64,', '')
+                else:
+                    template_vars['logo_url'] = url_for('static', filename='images/FNFWebLogo200x50.png', _external=True)
+                    template_vars['hero_image_url'] = url_for('static', filename='images/FNFFront600x300.png', _external=True)
+
                 # Only include QR code if campaign has it enabled
                 if campaign.has_qr_code:
                     template_vars['qr_code_base64'] = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
 
-                personalized_html = render_template_string(
-                    campaign.html_content,
+                # Render from template file, not stored HTML
+                personalized_html = render_template(
+                    campaign.template_name,
                     **template_vars
                 )
 
@@ -746,13 +758,25 @@ def campaign_send(campaign_id):
                                            _external=True)
             }
 
+            # Add image URLs based on environment
+            from backend.config import Config
+            from backend.image_handler import ImageHandler
+
+            if Config.is_development():
+                template_vars['logo_base64'] = ImageHandler.get_image_url('FNFWebLogo200x50.png').replace('data:image/png;base64,', '')
+                template_vars['hero_image_base64'] = ImageHandler.get_image_url('FNFFront600x300.png').replace('data:image/png;base64,', '')
+            else:
+                template_vars['logo_url'] = url_for('static', filename='images/FNFWebLogo200x50.png', _external=True)
+                template_vars['hero_image_url'] = url_for('static', filename='images/FNFFront600x300.png', _external=True)
+
             # Only include QR code if campaign has it enabled
             if campaign.has_qr_code:
                 # TODO: Generate unique QR code per customer
                 template_vars['qr_code_base64'] = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
 
-            personalized_html = render_template_string(
-                campaign.html_content,
+            # Render from template file, not stored HTML
+            personalized_html = render_template(
+                campaign.template_name,
                 **template_vars
             )
 
