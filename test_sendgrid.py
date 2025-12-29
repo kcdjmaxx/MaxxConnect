@@ -34,7 +34,7 @@ def test_sendgrid(test_email=None):
     <html>
         <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>🎉 SendGrid Test Successful!</h2>
-            <p>Hello from your mailChimpClone app!</p>
+            <p>Hello from your MaxxConnect app!</p>
             <p>If you're reading this, your SendGrid configuration is working correctly.</p>
             <hr>
             <h3>Configuration Details:</h3>
@@ -56,7 +56,7 @@ def test_sendgrid(test_email=None):
     message = Mail(
         from_email=(sender_email, sender_name),
         to_emails=test_email,
-        subject='✅ SendGrid Test - mailChimpClone',
+        subject='✅ SendGrid Test - MaxxConnect',
         html_content=html_content
     )
 

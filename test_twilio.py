@@ -33,7 +33,7 @@ def test_twilio(test_phone=None):
 
 Hello from {business_name}!
 
-This is a test message from your mailChimpClone app.
+This is a test message from your MaxxConnect app.
 
 Reply STOP to unsubscribe. - {business_name}"""
 

@@ -53,7 +53,7 @@ tags:
 
 #### 1. Generate Encryption Key
 ```bash
-cd mailChimpClone
+cd MaxxConnect
 source venv/bin/activate
 python backend/encryption.py
 ```
@@ -68,7 +68,7 @@ git add .
 git commit -m "Initial commit - email/SMS marketing platform"
 
 # Create repo on GitHub, then:
-git remote add origin https://github.com/yourusername/mailChimpClone.git
+git remote add origin https://github.com/yourusername/MaxxConnect.git
 git push -u origin main
 ```
 
@@ -82,7 +82,7 @@ git push -u origin main
 #### 2. Create New Project
 - Click "New Project"
 - Select "Deploy from GitHub repo"
-- Choose your `mailChimpClone` repository
+- Choose your `MaxxConnect` repository
 - Railway will start deploying automatically
 
 #### 3. Add PostgreSQL Database

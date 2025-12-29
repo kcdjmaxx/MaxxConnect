@@ -322,7 +322,7 @@ POST   /campaign/delete/<id>         - Delete campaign
 
 **Setup:**
 ```bash
-cd mailChimpClone
+cd MaxxConnect
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt

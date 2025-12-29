@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a custom email and SMS marketing platform (MailChimp clone) designed for small business use, deployed on Railway.app. The system sends promotional emails and SMS messages with unique QR codes for deal redemption tracking.
+This is MaxxConnect, a custom email and SMS marketing platform designed for small business use, deployed on Railway.app. The system sends promotional emails and SMS messages with unique QR codes for deal redemption tracking.
 
 **Environment-Aware Configuration:**
 - **Development**: Base64 images, SQLite database, localhost URLs
@@ -278,7 +278,7 @@ Required setup:
 ## Project Structure (Recommended)
 
 ```
-mailChimpClone/
+MaxxConnect/
 ├── backend/
 │   ├── api/          # Flask/FastAPI REST endpoints
 │   ├── models/       # SQLAlchemy database models

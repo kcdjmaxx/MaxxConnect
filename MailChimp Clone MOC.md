@@ -19,15 +19,15 @@ Custom email and SMS marketing platform deployed on Railway.app. Supports CSV co
 
 ## Core Documentation
 
-- [[mailChimpClone/CLAUDE]] - Comprehensive technical guide for AI assistants
-- [[mailChimpClone/intitalPromtReply01]] - Initial project planning and architecture
-- [[mailChimpClone/phase01]] - Phase 1 implementation details
+- [[MaxxConnect/CLAUDE]] - Comprehensive technical guide for AI assistants
+- [[MaxxConnect/intitalPromtReply01]] - Initial project planning and architecture
+- [[MaxxConnect/phase01]] - Phase 1 implementation details
 
 ## Implementation Guides
 
-- [[mailChimpClone/phase01Checklist]] - Setup and testing checklist
-- [[mailChimpClone/SMS_INTEGRATION_SUMMARY]] - SMS/Twilio integration documentation
-- [[mailChimpClone/RAILWAY_DEPLOYMENT_GUIDE]] - Cloud deployment instructions
+- [[MaxxConnect/phase01Checklist]] - Setup and testing checklist
+- [[MaxxConnect/SMS_INTEGRATION_SUMMARY]] - SMS/Twilio integration documentation
+- [[MaxxConnect/RAILWAY_DEPLOYMENT_GUIDE]] - Cloud deployment instructions
 
 ## Technology Stack
 
@@ -91,7 +91,7 @@ Custom email and SMS marketing platform deployed on Railway.app. Supports CSV co
 
 ```bash
 # Setup
-cd mailChimpClone
+cd MaxxConnect
 pip install -r requirements.txt
 python -c "from backend.database import init_db; init_db()"
 
@@ -147,7 +147,7 @@ gunicorn app:app
 ## Code Structure
 
 ```
-mailChimpClone/
+MaxxConnect/
 ├── app.py (327 LOC)
 ├── backend/
 │   ├── database.py
@@ -173,7 +173,7 @@ Required `.env` variables:
 
 ## Testing Data
 
-- [[mailChimpClone/test_contacts.csv]] - Sample CSV with phone numbers for testing
+- [[MaxxConnect/test_contacts.csv]] - Sample CSV with phone numbers for testing
 
 ## Cross-References
 

@@ -433,7 +433,7 @@ SELECT * FROM customers;
 
 **Local development (optional):**
 ```bash
-cd "/Users/maxross/Library/Mobile Documents/iCloud~md~obsidian/Documents/Kcdjmaxx Main Vault/mailChimpClone"
+cd "/Users/maxross/Library/Mobile Documents/iCloud~md~obsidian/Documents/Kcdjmaxx Main Vault/MaxxConnect"
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -458,7 +458,7 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 
 ### Step 2: Test SMS (Once A2P Approved)
 ```bash
-cd "/Users/maxross/Library/Mobile Documents/iCloud~md~obsidian/Documents/Kcdjmaxx Main Vault/mailChimpClone"
+cd "/Users/maxross/Library/Mobile Documents/iCloud~md~obsidian/Documents/Kcdjmaxx Main Vault/MaxxConnect"
 source venv/bin/activate
 python test_twilio.py +18168383050
 ```
@@ -466,7 +466,7 @@ Check your phone for the test SMS!
 
 ### Step 3: Test Email (Already Working)
 ```bash
-cd "/Users/maxross/Library/Mobile Documents/iCloud~md~obsidian/Documents/Kcdjmaxx Main Vault/mailChimpClone"
+cd "/Users/maxross/Library/Mobile Documents/iCloud~md~obsidian/Documents/Kcdjmaxx Main Vault/MaxxConnect"
 source venv/bin/activate
 python test_sendgrid.py kcdjmaxx@gmail.com
 ```

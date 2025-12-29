@@ -35,7 +35,7 @@ Phase 1 establishes the core foundation for sending emails with proper deliverab
 
 ### 1.1 Create Project Structure
 ```
-mailChimpClone/
+MaxxConnect/
 ├── app.py                     # Main Flask application
 ├── backend/
 │   ├── __init__.py
@@ -1087,7 +1087,7 @@ if __name__ == '__main__':
 
 ### 7.1 Initialize Database
 ```bash
-cd mailChimpClone
+cd MaxxConnect
 source venv/bin/activate
 python -c "from backend.database import init_db; init_db()"
 ```
@@ -1191,9 +1191,9 @@ After=network.target
 
 [Service]
 User=pi
-WorkingDirectory=/home/pi/mailChimpClone
-Environment="PATH=/home/pi/mailChimpClone/venv/bin"
-ExecStart=/home/pi/mailChimpClone/venv/bin/gunicorn -w 2 -b 0.0.0.0:5000 app:app
+WorkingDirectory=/home/pi/MaxxConnect
+Environment="PATH=/home/pi/MaxxConnect/venv/bin"
+ExecStart=/home/pi/MaxxConnect/venv/bin/gunicorn -w 2 -b 0.0.0.0:5000 app:app
 
 [Install]
 WantedBy=multi-user.target

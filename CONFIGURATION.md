@@ -1,6 +1,6 @@
 # Configuration Guide
 
-This guide explains how to configure the mailChimpClone application for different environments (development vs production).
+This guide explains how to configure the MaxxConnect application for different environments (development vs production).
 
 ## Overview
 
