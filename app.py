@@ -401,9 +401,9 @@ def campaign_new():
                 from backend.image_handler import ImageHandler
 
                 # Build template variables
+                # Note: Don't include unsubscribe_link here - it will be added when sending
                 template_vars = {
-                    'customer_name': 'Sample Customer',
-                    'unsubscribe_link': '#unsubscribe'
+                    'customer_name': 'Sample Customer'
                 }
 
                 # Use base64 for development, external URLs for production
@@ -549,9 +549,9 @@ def campaign_edit(campaign_id):
                     from backend.image_handler import ImageHandler
 
                     # Build template variables
+                    # Note: Don't include unsubscribe_link here - it will be added when sending
                     template_vars = {
-                        'customer_name': 'Sample Customer',
-                        'unsubscribe_link': '#unsubscribe'
+                        'customer_name': 'Sample Customer'
                     }
 
                     # Use base64 for development, external URLs for production
