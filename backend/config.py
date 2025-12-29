@@ -27,7 +27,7 @@ class Config:
     # Email Service
     SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
     SENDER_EMAIL = os.getenv('SENDER_EMAIL')
-    SENDER_NAME = os.getenv('SENDER_NAME', 'Your Business')
+    SENDER_NAME = os.getenv('BUSINESS_NAME', os.getenv('SENDER_NAME', 'Your Business'))
     BUSINESS_ADDRESS = os.getenv('BUSINESS_ADDRESS', '')
 
     # SMS Service
