@@ -176,6 +176,11 @@ def unsubscribe():
     email = request.args.get('email')
     token = request.args.get('token')
 
+    # Debug logging
+    print(f"DEBUG UNSUBSCRIBE: Received email parameter: '{email}'")
+    print(f"DEBUG UNSUBSCRIBE: Received token parameter: '{token}'")
+    print(f"DEBUG UNSUBSCRIBE: Full URL: {request.url}")
+
     if not email or not token:
         return render_template('unsubscribe.html',
                              title='Invalid Request',
@@ -183,7 +188,14 @@ def unsubscribe():
 
     db = get_db()
     try:
+        # Debug: Check what's in the database
+        all_customers = db.query(Customer).all()
+        print(f"DEBUG UNSUBSCRIBE: Total customers in DB: {len(all_customers)}")
+        if all_customers:
+            print(f"DEBUG UNSUBSCRIBE: First customer email: '{all_customers[0].email}'")
+
         customer = Customer.find_by_email(db, email)
+        print(f"DEBUG UNSUBSCRIBE: Customer found: {customer is not None}")
 
         if not customer:
             return render_template('unsubscribe.html',
