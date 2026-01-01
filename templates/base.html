@@ -3,22 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Email Marketing Platform{% endblock %}</title>
+    <title>{% block title %}MaxxConnect{% endblock %} - Email & SMS Marketing</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <nav>
         <ul>
-            <li><a href="/">Dashboard</a></li>
-            <li><a href="/contacts">Contacts</a></li>
-            <li><a href="/campaigns">Campaigns</a></li>
-            <li><a href="/import">Import CSV</a></li>
-            <li><a href="/preview">Email Preview</a></li>
-            <li><a href="/sms-preview">SMS Preview</a></li>
+            <li><a href="/" {% if request.path == '/' %}class="active"{% endif %}>📊 Dashboard</a></li>
+            <li><a href="/contacts" {% if request.path == '/contacts' %}class="active"{% endif %}>👥 Contacts</a></li>
+            <li><a href="/campaigns" {% if request.path.startswith('/campaign') %}class="active"{% endif %}>📧 Campaigns</a></li>
+            <li><a href="/import" {% if request.path == '/import' %}class="active"{% endif %}>📤 Import</a></li>
+            <li><a href="/preview" {% if request.path == '/preview' %}class="active"{% endif %}>✉️ Email Test</a></li>
+            <li><a href="/sms-preview" {% if request.path == '/sms-preview' %}class="active"{% endif %}>💬 SMS Test</a></li>
         </ul>
     </nav>
 
     <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         {% block content %}{% endblock %}
     </div>
 </body>

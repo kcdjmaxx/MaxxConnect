@@ -3,35 +3,49 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<h1>Dashboard</h1>
+<h1>📊 Dashboard</h1>
 
 <div class="stats">
-    <div class="stat-card">
+    <div class="stat-card" style="border-left-color: #2563eb;">
         <h3>{{ total_contacts }}</h3>
         <p>Total Contacts</p>
     </div>
-    <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="stat-card" style="border-left-color: #10b981;">
         <h3>{{ subscribed }}</h3>
         <p>Email Subscribed</p>
     </div>
-    <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-        <h3>{{ unsubscribed }}</h3>
-        <p>Email Unsubscribed</p>
-    </div>
-    <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+    <div class="stat-card" style="border-left-color: #06b6d4;">
         <h3>{{ sms_subscribed }}</h3>
         <p>SMS Subscribed</p>
     </div>
-    <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+    <div class="stat-card" style="border-left-color: #ef4444;">
+        <h3>{{ unsubscribed }}</h3>
+        <p>Email Unsubscribed</p>
+    </div>
+    <div class="stat-card" style="border-left-color: #f59e0b;">
         <h3>{{ sms_unsubscribed }}</h3>
         <p>SMS Unsubscribed</p>
     </div>
 </div>
 
-<div class="card">
-    <h2>Quick Start</h2>
-    <p>1. <a href="/import">Import contacts</a> from a CSV file</p>
-    <p>2. <a href="/preview">Create and test</a> your email campaign</p>
-    <p>3. Send to all subscribed contacts</p>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+    <div class="card">
+        <h2>🚀 Quick Actions</h2>
+        <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+            <a href="/campaign/new" class="btn" style="text-align: center;">✨ Create Campaign</a>
+            <a href="/import" class="btn btn-secondary" style="text-align: center;">📤 Import Contacts</a>
+            <a href="/contacts" class="btn btn-secondary" style="text-align: center;">👥 View All Contacts</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📖 Getting Started</h2>
+        <div style="margin-top: 1rem;">
+            <p style="margin-bottom: 0.75rem;"><strong>Step 1:</strong> <a href="/import">Import contacts</a> from a CSV file</p>
+            <p style="margin-bottom: 0.75rem;"><strong>Step 2:</strong> <a href="/campaign/new">Create a campaign</a> with email templates</p>
+            <p style="margin-bottom: 0.75rem;"><strong>Step 3:</strong> <a href="/preview">Test your emails</a> before sending</p>
+            <p><strong>Step 4:</strong> Send to your subscribed contacts and track results</p>
+        </div>
+    </div>
 </div>
 {% endblock %}
