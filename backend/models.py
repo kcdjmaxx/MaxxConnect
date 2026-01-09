@@ -16,7 +16,9 @@ class Customer(Base):
 
     id = Column(Integer, primary_key=True)
     _email_encrypted = Column('email', String(500), unique=True, nullable=False, index=True)  # Encrypted storage
+    email_hash = Column(String(64), unique=True, nullable=False, index=True)  # SHA-256 hash for lookups
     _phone_encrypted = Column('phone', String(500), nullable=True, index=True)  # Encrypted storage
+    phone_hash = Column(String(64), unique=True, nullable=True, index=True)  # SHA-256 hash for lookups
     name = Column(String(255))
 
     # Email property with automatic encryption/decryption
@@ -27,8 +29,13 @@ class Customer(Base):
 
     @email.setter
     def email(self, value):
-        """Encrypt email when writing"""
-        self._email_encrypted = encrypt_string(value) if value else None
+        """Encrypt email and generate hash when writing"""
+        if value:
+            self._email_encrypted = encrypt_string(value)
+            self.email_hash = hashlib.sha256(value.encode()).hexdigest()
+        else:
+            self._email_encrypted = None
+            self.email_hash = None
 
     @email.expression
     def email(cls):
@@ -43,8 +50,13 @@ class Customer(Base):
 
     @phone.setter
     def phone(self, value):
-        """Encrypt phone when writing"""
-        self._phone_encrypted = encrypt_string(value) if value else None
+        """Encrypt phone and generate hash when writing"""
+        if value:
+            self._phone_encrypted = encrypt_string(value)
+            self.phone_hash = hashlib.sha256(value.encode()).hexdigest()
+        else:
+            self._phone_encrypted = None
+            self.phone_hash = None
 
     @phone.expression
     def phone(cls):
@@ -80,15 +92,15 @@ class Customer(Base):
 
     @classmethod
     def find_by_email(cls, db_session, email):
-        """Find customer by email (handles encryption)"""
-        encrypted_email = encrypt_string(email)
-        return db_session.query(cls).filter(cls._email_encrypted == encrypted_email).first()
+        """Find customer by email (uses hash for lookup)"""
+        email_hash = hashlib.sha256(email.encode()).hexdigest()
+        return db_session.query(cls).filter(cls.email_hash == email_hash).first()
 
     @classmethod
     def find_by_phone(cls, db_session, phone):
-        """Find customer by phone (handles encryption)"""
-        encrypted_phone = encrypt_string(phone)
-        return db_session.query(cls).filter(cls._phone_encrypted == encrypted_phone).first()
+        """Find customer by phone (uses hash for lookup)"""
+        phone_hash = hashlib.sha256(phone.encode()).hexdigest()
+        return db_session.query(cls).filter(cls.phone_hash == phone_hash).first()
 
 class Campaign(Base):
     __tablename__ = 'campaigns'
