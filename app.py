@@ -781,8 +781,10 @@ def campaign_send(campaign_id):
 
         for customer in subscribers:
             # Generate personalized content
+            # Extract first name only for friendlier greeting
+            first_name = customer.name.split()[0] if customer.name else 'Valued Customer'
             template_vars = {
-                'customer_name': customer.name or 'Valued Customer',
+                'customer_name': first_name,
                 'unsubscribe_link': url_for('unsubscribe',
                                            email=customer.email,
                                            token=customer.get_unsubscribe_token(),
