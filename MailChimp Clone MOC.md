@@ -25,9 +25,92 @@ Custom email and SMS marketing platform deployed on Railway.app. Supports CSV co
 
 ## Implementation Guides
 
+- [[MaxxConnect/README]] - Project overview and quick start guide
+- [[MaxxConnect/CONFIGURATION]] - Environment configuration (dev/prod)
 - [[MaxxConnect/phase01Checklist]] - Setup and testing checklist
 - [[MaxxConnect/SMS_INTEGRATION_SUMMARY]] - SMS/Twilio integration documentation
 - [[MaxxConnect/RAILWAY_DEPLOYMENT_GUIDE]] - Cloud deployment instructions
+- [[MaxxConnect/CAMPAIGN_MANAGEMENT_GUIDE]] - Complete campaign management guide
+- [[MaxxConnect/SESSION-SUMMARY]] - Recent development session notes
+- [[MaxxConnect/TODO-UNSUBSCRIBE]] - Known issues and fixes
+
+## Phase Specifications
+
+### Phase 2: Campaign Management (Planned)
+- [[MaxxConnect/specs/phase-2-campaign-management]] - QR codes, segmentation, queue system
+
+### Phase 3: Public Signup (Planned)
+- [[MaxxConnect/specs/phase-3-public-signup]] - Customer acquisition features
+
+## Design Documentation
+
+### Architecture & Overview
+- [[MaxxConnect/design/architecture]] - System architecture and component organization
+- [[MaxxConnect/design/gaps]] - Design coverage gaps
+- [[MaxxConnect/design/traceability]] - Code-to-design traceability map
+- [[MaxxConnect/design/traceability-tests]] - Test coverage traceability
+- [[MaxxConnect/design/manifest-ui]] - UI component manifest
+
+### CRC Cards (Class Responsibility Collaborator)
+**Core Models:**
+- [[MaxxConnect/design/crc-Customer]] - Customer data model
+- [[MaxxConnect/design/crc-Campaign]] - Campaign model
+- [[MaxxConnect/design/crc-QRCode]] - QR code model
+
+**Managers & Services:**
+- [[MaxxConnect/design/crc-CampaignManager]] - Campaign CRUD routes
+- [[MaxxConnect/design/crc-CampaignAnalytics]] - Analytics service
+- [[MaxxConnect/design/crc-SegmentManager]] - Customer segmentation
+- [[MaxxConnect/design/crc-QRCodeGenerator]] - QR code generation service
+
+**Queue System:**
+- [[MaxxConnect/design/crc-EmailQueueTask]] - Email queue tasks
+- [[MaxxConnect/design/crc-SMSQueueTask]] - SMS queue tasks
+- [[MaxxConnect/design/crc-CeleryApp]] - Celery task manager
+- [[MaxxConnect/design/crc-RateLimiter]] - Rate limiting service
+
+**Utilities:**
+- [[MaxxConnect/design/crc-Config]] - Configuration management
+- [[MaxxConnect/design/crc-ImageHandler]] - Image processing (base64/external URLs)
+
+### Sequence Diagrams
+**Campaign Workflows:**
+- [[MaxxConnect/design/seq-campaign-create]] - Campaign creation flow
+- [[MaxxConnect/design/seq-campaign-send]] - Campaign sending flow
+- [[MaxxConnect/design/seq-campaign-send-qr]] - Campaign with QR codes
+- [[MaxxConnect/design/seq-campaign-preview]] - Campaign preview
+- [[MaxxConnect/design/seq-campaign-analytics]] - Analytics generation
+
+**Email/SMS Processing:**
+- [[MaxxConnect/design/seq-email-process]] - Email sending process
+- [[MaxxConnect/design/seq-email-retry]] - Email retry logic
+- [[MaxxConnect/design/seq-sms-process]] - SMS sending process
+- [[MaxxConnect/design/seq-sms-retry]] - SMS retry logic
+
+**Segmentation & QR:**
+- [[MaxxConnect/design/seq-segment-manage]] - Segment management
+- [[MaxxConnect/design/seq-segment-filter]] - Segment filtering
+- [[MaxxConnect/design/seq-qr-generate]] - QR code generation
+
+### UI Specifications
+- [[MaxxConnect/design/ui-campaign-list]] - Campaign list page
+- [[MaxxConnect/design/ui-campaign-create]] - Campaign creation form
+- [[MaxxConnect/design/ui-campaign-preview]] - Campaign preview page
+- [[MaxxConnect/design/ui-campaign-send-confirm]] - Send confirmation page
+- [[MaxxConnect/design/ui-campaign-analytics]] - Analytics dashboard
+- [[MaxxConnect/design/ui-segment-list]] - Segment list page
+- [[MaxxConnect/design/ui-qr-display]] - QR code display
+
+### Test Designs
+- [[MaxxConnect/design/test-Campaign]] - Campaign functionality tests
+- [[MaxxConnect/design/test-Analytics]] - Analytics tests
+- [[MaxxConnect/design/test-Segmentation]] - Segmentation tests
+- [[MaxxConnect/design/test-QRCode]] - QR code generation tests
+- [[MaxxConnect/design/test-Queue]] - Queue system tests
+- [[MaxxConnect/design/test-UI]] - UI component tests
+
+### Implementation Notes
+- [[MaxxConnect/design/notes-qr-toggle-implementation]] - QR toggle feature notes
 
 ## Technology Stack
 

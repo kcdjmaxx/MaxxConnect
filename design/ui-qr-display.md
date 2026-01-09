@@ -1,3 +1,12 @@
+---
+tags:
+  - project/mailchimp-clone
+  - subject/web-development
+  - type/design-specification
+  - status/active
+  - tool/flask
+---
+
 # QRDisplay
 **Source:** phase-2-campaign-management.md
 **Route:** /qr/<token> (see manifest-ui.md)

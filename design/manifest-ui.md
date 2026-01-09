@@ -1,3 +1,13 @@
+---
+tags:
+  - project/mailchimp-clone
+  - subject/web-development
+  - subject/software-architecture
+  - type/documentation
+  - status/active
+  - tool/flask
+---
+
 # UI Manifest
 **Source Spec:** phase-2-campaign-management.md
 

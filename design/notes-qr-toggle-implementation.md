@@ -1,3 +1,13 @@
+---
+tags:
+  - project/mailchimp-clone
+  - subject/web-development
+  - subject/software-architecture
+  - type/documentation
+  - status/active
+  - tool/flask
+---
+
 # Implementation Notes: QR Code Toggle Feature
 
 **Source Spec:** User story for QR code toggle

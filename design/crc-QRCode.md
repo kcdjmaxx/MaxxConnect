@@ -1,3 +1,13 @@
+---
+tags:
+  - project/mailchimp-clone
+  - subject/web-development
+  - subject/software-architecture
+  - type/design-specification
+  - status/active
+  - tool/flask
+---
+
 # QRCode
 **Source Spec:** phase-2-campaign-management.md
 

@@ -1,3 +1,12 @@
+---
+tags:
+  - project/mailchimp-clone
+  - subject/web-development
+  - type/design-specification
+  - status/active
+  - tool/flask
+---
+
 # CampaignSendConfirm
 **Source:** phase-2-campaign-management.md
 **Route:** /campaign/send-confirm/<id>

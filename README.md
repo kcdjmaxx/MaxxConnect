@@ -1,3 +1,15 @@
+---
+tags:
+  - project/mailchimp-clone
+  - subject/web-development
+  - subject/api-integration
+  - type/documentation
+  - status/active
+  - tool/flask
+  - tool/sendgrid
+  - tool/twilio
+---
+
 # MaxxConnect
 
 A custom email and SMS marketing platform designed for small businesses, featuring campaign management, contact segmentation, and legal-compliant unsubscribe handling.

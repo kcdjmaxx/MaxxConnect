@@ -1,3 +1,13 @@
+---
+tags:
+  - project/mailchimp-clone
+  - subject/web-development
+  - subject/software-architecture
+  - type/design-specification
+  - status/active
+  - tool/flask
+---
+
 # Customer
 **Source Spec:** phase-2-campaign-management.md (extends Phase 1)
 
@@ -5,7 +15,9 @@
 ### Knows
 - id: Unique customer identifier (primary key)
 - email: Encrypted email address (Fernet AES-128)
+- email_hash: SHA-256 hash of email for deterministic lookups
 - phone: Encrypted phone number in E.164 format
+- phone_hash: SHA-256 hash of phone for deterministic lookups
 - name: Customer display name
 - subscribed: Email subscription status
 - opted_in_date: Email opt-in timestamp
@@ -18,6 +30,8 @@
 - updated_at: Last modification timestamp
 
 ### Does
+- find_by_email(db, email): Class method - find customer by email using hash lookup
+- find_by_phone(db, phone): Class method - find customer by phone using hash lookup
 - get_unsubscribe_token(): Generate secure unsubscribe token
 - get_sms_optout_token(): Generate secure SMS opt-out token
 - get_segments_list(): Parse segments into list

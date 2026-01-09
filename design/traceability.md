@@ -1,3 +1,13 @@
+---
+tags:
+  - project/mailchimp-clone
+  - subject/web-development
+  - subject/software-architecture
+  - type/documentation
+  - status/active
+  - tool/flask
+---
+
 # Traceability Matrix
 **Source Spec:** phase-2-campaign-management.md
 
@@ -66,6 +76,9 @@
 | Design | Source File | Status |
 |--------|-------------|--------|
 | crc-Config.md | backend/config.py | [x] Implemented |
+| - is_development() | FLASK_ENV detection | [x] |
+| - is_production() | FLASK_ENV detection | [x] |
+| - SENDER_NAME fallback | BUSINESS_NAME env var | [x] |
 | crc-ImageHandler.md | backend/image_handler.py | [x] Implemented |
 
 ### Routes (Flask - app.py)
@@ -78,6 +91,7 @@
 | - campaign_preview() | GET /campaign/preview/<id> | [x] |
 | - campaign_send_confirm() | GET /campaign/send-confirm/<id> | [x] |
 | - campaign_send() | POST /campaign/send/<id> | [x] |
+| - campaign_send() debug logging | Environment-aware image handling | [x] |
 | - campaign_delete() | POST /campaign/delete/<id> | [x] |
 | - get_available_templates() | Helper function | [x] |
 

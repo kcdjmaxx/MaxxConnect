@@ -1,3 +1,13 @@
+---
+tags:
+  - project/mailchimp-clone
+  - subject/web-development
+  - subject/software-architecture
+  - type/documentation
+  - status/active
+  - tool/flask
+---
+
 # Test Traceability Map
 
 ## specs/phase-2-campaign-management.md

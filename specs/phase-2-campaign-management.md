@@ -1,3 +1,12 @@
+---
+tags:
+  - project/mailchimp-clone
+  - subject/web-development
+  - type/implementation-guide
+  - status/planning
+  - tool/flask
+---
+
 # Phase 2: Campaign Management System
 
 **Status:** Level 1 Specification

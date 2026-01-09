@@ -1,3 +1,13 @@
+---
+tags:
+  - project/mailchimp-clone
+  - subject/web-development
+  - subject/software-architecture
+  - type/test-design
+  - status/active
+  - tool/flask
+---
+
 # Test Design: Segmentation
 
 **Source Specs**: specs/phase-2-campaign-management.md

@@ -17,7 +17,26 @@
       "Bash(git commit:*)",
       "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch:*)",
       "Bash(git diff-index:*)",
-      "Bash(git update-index:*)"
+      "Bash(git update-index:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:web-production-739cd.up.railway.app)",
+      "Bash(git revert:*)",
+      "Bash(pip install:*)",
+      "Bash(cd /Users/maxross/Library/Mobile Documents/iCloud~md~obsidian/Documents/Kcdjmaxx Main Vault/MaxxConnect && python3 migrate_add_hashes.py:*)",
+      "Bash(cd /Users/maxross/Library/Mobile\\\\ Documents/iCloud~md~obsidian/Documents/Kcdjmaxx\\\\ Main\\\\ Vault/MaxxConnect && python3:*)",
+      "Bash(cd /Users/maxross/Library/Mobile\\\\ Documents/iCloud~md~obsidian/Documents/Kcdjmaxx\\\\ Main\\\\ Vault/MaxxConnect && python3 test_unsubscribe.py:*)",
+      "WebSearch",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(brew install:*)",
+      "Bash(railway login:*)",
+      "Bash(railway whoami:*)",
+      "Bash(open \"https://railway.app/cli-login\")",
+      "Bash(railway link:*)",
+      "Bash(railway run python3:*)",
+      "Bash(railway variables:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:izkwRCiCiAUgQNnyqUQqkxlVzYDChuBG@mainline.proxy.rlwy.net:31631/railway\" python3:*)",
+      "Bash(git reset:*)"
     ]
   }
 }

@@ -1,3 +1,15 @@
+---
+tags:
+  - project/mailchimp-clone
+  - subject/web-development
+  - subject/api-integration
+  - type/documentation
+  - status/active
+  - tool/flask
+  - tool/sendgrid
+  - tool/twilio
+---
+
 # Configuration Guide
 
 This guide explains how to configure the MaxxConnect application for different environments (development vs production).

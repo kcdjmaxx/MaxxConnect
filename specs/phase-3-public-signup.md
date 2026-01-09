@@ -1,3 +1,12 @@
+---
+tags:
+  - project/mailchimp-clone
+  - subject/web-development
+  - type/implementation-guide
+  - status/planning
+  - tool/flask
+---
+
 # Phase 3: Public Customer Signup & Acquisition
 
 **Status:** Planned
