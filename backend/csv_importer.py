@@ -10,13 +10,19 @@ def is_valid_email(email):
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(pattern, email) is not None
 
-def import_csv(file_path, segment_tag=None):
+def import_csv(file_path, segment_tag=None, email_consent=True, sms_consent=False):
     """
     Import contacts from CSV with deduplication
 
     Supports two CSV formats:
     1. Simple format: email,name,phone
     2. Square export format: Email Address,First Name,Last Name,Phone Number,...
+
+    Args:
+        file_path: Path to CSV file
+        segment_tag: Optional segment tag to apply
+        email_consent: Subscribe contacts to email (default True)
+        sms_consent: Subscribe contacts to SMS (default False - requires explicit consent)
     """
     db = SessionLocal()
 
@@ -95,7 +101,14 @@ def import_csv(file_path, segment_tag=None):
                 # Update phone if provided and not already set
                 if phone and not existing.phone:
                     existing.phone = phone
-                    # Auto-subscribe to SMS if phone is added
+
+                # Update email subscription if consent given and not already subscribed
+                if email_consent and not existing.subscribed:
+                    existing.subscribed = True
+                    existing.opted_in_date = datetime.now()
+
+                # Update SMS subscription only if explicit consent given
+                if sms_consent and phone and not existing.sms_subscribed:
                     existing.sms_subscribed = True
                     existing.sms_opted_in_date = datetime.now()
 
@@ -114,9 +127,10 @@ def import_csv(file_path, segment_tag=None):
                     phone=phone,
                     name=name,
                     segments=segment_tag if segment_tag else '',
-                    subscribed=True,
-                    sms_subscribed=True if phone else False,
-                    sms_opted_in_date=datetime.now() if phone else None
+                    subscribed=email_consent,
+                    opted_in_date=datetime.now() if email_consent else None,
+                    sms_subscribed=sms_consent and phone is not None,
+                    sms_opted_in_date=datetime.now() if (sms_consent and phone) else None
                 )
                 db.add(customer)
                 stats['added'] += 1

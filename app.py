@@ -107,7 +107,14 @@ def import_contacts():
 
             try:
                 segment = request.form.get('segment', '').strip()
-                stats = import_csv(filepath, segment if segment else None)
+                email_consent = request.form.get('email_consent') == 'on'
+                sms_consent = request.form.get('sms_consent') == 'on'
+                stats = import_csv(
+                    filepath,
+                    segment_tag=segment if segment else None,
+                    email_consent=email_consent,
+                    sms_consent=sms_consent
+                )
 
                 # Clean up uploaded file
                 os.remove(filepath)
