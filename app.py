@@ -5,6 +5,7 @@ CRC: crc-CampaignManager.md
 Spec: phase-2-campaign-management.md
 """
 from flask import Flask, render_template, request, redirect, url_for, flash, render_template_string
+from flask_httpauth import HTTPBasicAuth
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
@@ -18,6 +19,26 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Basic HTTP Authentication
+auth = HTTPBasicAuth()
+
+@auth.verify_password
+def verify_password(username, password):
+    """Verify admin credentials from environment variables"""
+    admin_user = os.getenv('ADMIN_USERNAME')
+    admin_pass = os.getenv('ADMIN_PASSWORD')
+
+    # If no credentials configured, deny all access in production
+    if not admin_user or not admin_pass:
+        # Allow access in development if not configured
+        if os.getenv('FLASK_ENV') == 'development' or os.getenv('RAILWAY_ENVIRONMENT') is None:
+            return True
+        return False
+
+    if username == admin_user and password == admin_pass:
+        return True
+    return False
+
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -30,6 +51,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 init_db()
 
 @app.route('/')
+@auth.login_required
 def dashboard():
     """Dashboard with statistics"""
     db = get_db()
@@ -52,6 +74,7 @@ def dashboard():
         db.close()
 
 @app.route('/contacts')
+@auth.login_required
 def contacts():
     """View all contacts"""
     db = get_db()
@@ -62,6 +85,7 @@ def contacts():
         db.close()
 
 @app.route('/import', methods=['GET', 'POST'])
+@auth.login_required
 def import_contacts():
     """Import contacts from CSV"""
     if request.method == 'POST':
@@ -106,6 +130,7 @@ def import_contacts():
     return render_template('import.html')
 
 @app.route('/preview', methods=['GET', 'POST'])
+@auth.login_required
 def preview_email():
     """Preview and test email"""
     if request.method == 'POST':
@@ -210,6 +235,7 @@ def unsubscribe():
         db.close()
 
 @app.route('/sms-preview', methods=['GET', 'POST'])
+@auth.login_required
 def sms_preview():
     """Preview and test SMS"""
     if request.method == 'POST':
@@ -329,6 +355,7 @@ def sms_optout():
         db.close()
 
 @app.route('/test-template')
+@auth.login_required
 def test_template():
     """Test the Monday special email template"""
     return render_template('email/monday_special.html',
@@ -361,6 +388,7 @@ def get_available_templates():
     return sorted(templates, key=lambda x: x['name'])
 
 @app.route('/campaigns')
+@auth.login_required
 def campaigns():
     """
     View all campaigns
@@ -376,6 +404,7 @@ def campaigns():
         db.close()
 
 @app.route('/campaign/new', methods=['GET', 'POST'])
+@auth.login_required
 def campaign_new():
     """
     Create new campaign
@@ -494,6 +523,7 @@ def campaign_new():
         db.close()
 
 @app.route('/campaign/preview/<int:campaign_id>')
+@auth.login_required
 def campaign_preview(campaign_id):
     """
     Preview a campaign
@@ -514,6 +544,7 @@ def campaign_preview(campaign_id):
         db.close()
 
 @app.route('/campaign/edit/<int:campaign_id>', methods=['GET', 'POST'])
+@auth.login_required
 def campaign_edit(campaign_id):
     """
     Edit an existing campaign
@@ -601,6 +632,7 @@ def campaign_edit(campaign_id):
         db.close()
 
 @app.route('/campaign/delete/<int:campaign_id>', methods=['POST'])
+@auth.login_required
 def campaign_delete(campaign_id):
     """
     Delete a campaign
@@ -627,6 +659,7 @@ def campaign_delete(campaign_id):
         db.close()
 
 @app.route('/campaign/send-confirm/<int:campaign_id>')
+@auth.login_required
 def campaign_send_confirm(campaign_id):
     """
     Show send confirmation page with audience selection
@@ -658,6 +691,7 @@ def campaign_send_confirm(campaign_id):
         db.close()
 
 @app.route('/campaign/send/<int:campaign_id>', methods=['POST'])
+@auth.login_required
 def campaign_send(campaign_id):
     """
     Send a campaign based on confirmation form

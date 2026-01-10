@@ -98,6 +98,10 @@ BUSINESS_ADDRESS=123 Main St, City, State 12345
 SECRET_KEY=<generate-secure-random-key>
 ENCRYPTION_KEY=<your-fernet-key>
 
+# Admin Authentication (required for production)
+ADMIN_USERNAME=your_admin_username
+ADMIN_PASSWORD=<generate-secure-password>
+
 # SMS (if using)
 TWILIO_ACCOUNT_SID=your_sid
 TWILIO_AUTH_TOKEN=your_token
@@ -338,6 +342,8 @@ BASE_URL=http://localhost:5001
 | `BUSINESS_ADDRESS` | Yes | - | Physical address (legal) |
 | `SECRET_KEY` | Yes | Dev default | Flask secret key |
 | `ENCRYPTION_KEY` | Yes | - | Fernet encryption key |
+| `ADMIN_USERNAME` | Prod | - | Admin login username |
+| `ADMIN_PASSWORD` | Prod | - | Admin login password |
 
 ## Troubleshooting
 
@@ -387,6 +393,33 @@ BASE_URL=http://localhost:5001
 6. **Version control images** - Commit to git for production deployment
 
 ## Security Notes
+
+### Admin Authentication
+
+The admin interface is protected with HTTP Basic Authentication in production.
+
+**How it works:**
+- All admin routes require username/password login
+- Uses browser's native authentication prompt
+- Credentials stored in environment variables
+
+**Public routes (no auth required):**
+- `/unsubscribe` - Email unsubscribe links
+- `/sms-optout` - SMS opt-out (Twilio webhook)
+- `/signup` - Public signup form
+
+**Setting up (Railway):**
+
+1. Go to Railway dashboard → Variables
+2. Add these variables:
+   ```
+   ADMIN_USERNAME=your_admin_username
+   ADMIN_PASSWORD=your_secure_password
+   ```
+
+**Development behavior:**
+- If `ADMIN_USERNAME`/`ADMIN_PASSWORD` are not set, auth is disabled for convenience
+- Set them in `.env` to test locally
 
 ### Secret Key Generation
 
