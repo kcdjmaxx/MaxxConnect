@@ -66,6 +66,13 @@ Email/SMS marketing platform with:
 - Flash messages for user feedback
 - SMS opt-out webhook for STOP replies
 
+### Dashboard Stats
+- Email Unsubscribed: Counts customers with subscribed=False
+- SMS Subscribed: Counts customers with sms_subscribed=True
+- SMS Unsubscribed: Counts only active opt-outs (customers with sms_unsubscribed_date set)
+  - Note: Does NOT count customers who simply have sms_subscribed=False
+  - This allows tracking actual STOP/opt-out events vs never-subscribed contacts
+
 ### TCPA/CAN-SPAM Compliance
 - Email: Unsubscribe link required, physical address in footer
 - SMS: Explicit opt-in required, STOP handling via webhook
@@ -190,6 +197,7 @@ Email/SMS marketing platform with:
 - Test Designs: 6 (complete)
 
 **Recent Updates:**
+- Added Dashboard Stats to cross-cutting concerns (SMS unsubscribe counter logic)
 - Added HTTP Basic Auth (cross-cutting concern)
 - Added crc-CSVImporter.md with consent handling
 - Added seq-csv-import.md sequence
