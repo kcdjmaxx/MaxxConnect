@@ -62,7 +62,8 @@ def dashboard():
 
         # SMS stats
         sms_subscribed = db.query(Customer).filter_by(sms_subscribed=True).count()
-        sms_unsubscribed = db.query(Customer).filter_by(sms_subscribed=False).filter(Customer.phone.isnot(None)).count()
+        # Only count active unsubscribes (people who opted out), not everyone without SMS subscription
+        sms_unsubscribed = db.query(Customer).filter(Customer.sms_unsubscribed_date.isnot(None)).count()
 
         return render_template('dashboard.html',
                              total_contacts=total_contacts,
