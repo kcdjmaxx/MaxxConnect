@@ -963,32 +963,6 @@ def signup():
     # GET request - show form
     return render_template('signup.html')
 
-@app.route('/admin/fix-sms-subscriptions', methods=['POST'])
-@auth.login_required
-def fix_sms_subscriptions():
-    """
-    One-time admin route to remove all SMS subscriptions.
-    DELETE THIS ROUTE after running once.
-    """
-    db = get_db()
-    try:
-        customers = db.query(Customer).filter_by(sms_subscribed=True).all()
-        count = len(customers)
-
-        for customer in customers:
-            customer.sms_subscribed = False
-            customer.sms_opted_in_date = None
-
-        db.commit()
-        flash(f'Done! Removed SMS subscriptions from {count} contacts.', 'success')
-        return redirect('/')
-    except Exception as e:
-        db.rollback()
-        flash(f'Error: {str(e)}', 'error')
-        return redirect('/')
-    finally:
-        db.close()
-
 if __name__ == '__main__':
     # For development only - use proper WSGI server for production
     app.run(host='0.0.0.0', port=5001, debug=True)
