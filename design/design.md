@@ -45,6 +45,14 @@ Email/SMS marketing platform with:
 
 ## Cross-Cutting Concerns
 
+### Authentication
+- HTTP Basic Auth protects all admin routes
+- Credentials via ADMIN_USERNAME / ADMIN_PASSWORD env vars
+- Development: Auth disabled if credentials not set
+- Production: Auth required (denies access if not configured)
+- Public routes (no auth): /unsubscribe, /sms-optout, /signup
+- Implementation: flask-httpauth with @auth.login_required decorator
+
 ### Environment Configuration
 - FLASK_ENV: Controls dev vs production mode
 - Development: Base64 images, SQLite
@@ -52,11 +60,16 @@ Email/SMS marketing platform with:
 - See crc-Config.md, crc-ImageHandler.md
 
 ### Routing
-- See manifest-ui.md for all routes
+- See manifest-ui.md for all routes (includes auth requirements)
 
 ### Error Handling
 - Flash messages for user feedback
 - SMS opt-out webhook for STOP replies
+
+### TCPA/CAN-SPAM Compliance
+- Email: Unsubscribe link required, physical address in footer
+- SMS: Explicit opt-in required, STOP handling via webhook
+- CSV Import: Separate consent flags for email vs SMS (sms_consent defaults false)
 
 ## Artifacts
 
@@ -65,6 +78,10 @@ Email/SMS marketing platform with:
   - [x] backend/models.py (Campaign class)
 - crc-CampaignManager.md
   - [x] app.py (campaign routes)
+- crc-CSVImporter.md
+  - [x] backend/csv_importer.py
+  - [x] app.py (import_contacts route)
+  - [x] templates/import.html (consent checkboxes)
 - crc-Config.md
   - [x] backend/config.py
 - crc-ImageHandler.md
@@ -91,6 +108,9 @@ Email/SMS marketing platform with:
   - [ ] backend/services/campaign_analytics.py - Phase 3
 
 ### Sequences
+- seq-csv-import.md
+  - [x] backend/csv_importer.py
+  - [x] app.py (import_contacts)
 - seq-campaign-create.md
   - [x] app.py (campaign_new)
 - seq-campaign-preview.md
@@ -164,7 +184,13 @@ Email/SMS marketing platform with:
 ## Summary
 
 **Status:** Phase 1 Complete, Phase 2 Ready
-- CRC Cards: 13 (5 implemented, 8 planned)
-- Sequences: 12 (4 implemented, 8 planned)
+- CRC Cards: 14 (6 implemented, 8 planned)
+- Sequences: 13 (5 implemented, 8 planned)
 - UI Specs: 7 (4 implemented, 3 planned)
 - Test Designs: 6 (complete)
+
+**Recent Updates:**
+- Added HTTP Basic Auth (cross-cutting concern)
+- Added crc-CSVImporter.md with consent handling
+- Added seq-csv-import.md sequence
+- Updated manifest-ui.md with Auth column

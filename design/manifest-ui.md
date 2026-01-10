@@ -13,24 +13,28 @@ tags:
 
 ## Routes
 
-| Route | View | Description | Status |
-|-------|------|-------------|--------|
-| `/` | Dashboard | Overview stats and quick actions | Implemented |
-| `/contacts` | ContactList | View all customers | Implemented |
-| `/import` | ImportCSV | CSV contact import | Implemented |
-| `/preview` | EmailPreview | Test email composition | Implemented |
-| `/sms-preview` | SMSPreview | Test SMS composition | Implemented |
-| `/campaigns` | CampaignList | All campaigns with status | **Implemented** |
-| `/campaign/new` | CampaignCreate | Create new campaign | **Implemented** |
-| `/campaign/edit/<id>` | CampaignEdit | Edit existing campaign | **Implemented** |
-| `/campaign/preview/<id>` | CampaignPreview | Preview HTML content | **Implemented** |
-| `/campaign/send-confirm/<id>` | CampaignSendConfirm | Confirm before send | **Implemented** |
-| `/campaign/send/<id>` | CampaignSend | Execute campaign send | **Implemented** |
-| `/campaign/delete/<id>` | CampaignDelete | Delete campaign | **Implemented** |
-| `/segments` | SegmentList | Manage customer segments | Planned Phase 2 |
-| `/qr/<token>` | QRDisplay | Public QR code display for SMS | Planned Phase 2 |
-| `/unsubscribe` | Unsubscribe | Email unsubscribe handler | Implemented |
-| `/sms-optout` | SMSOptout | SMS opt-out handler | Implemented |
+| Route | View | Auth | Description | Status |
+|-------|------|------|-------------|--------|
+| `/` | Dashboard | Yes | Overview stats and quick actions | Implemented |
+| `/contacts` | ContactList | Yes | View all customers | Implemented |
+| `/import` | ImportCSV | Yes | CSV contact import with consent | Implemented |
+| `/preview` | EmailPreview | Yes | Test email composition | Implemented |
+| `/sms-preview` | SMSPreview | Yes | Test SMS composition | Implemented |
+| `/campaigns` | CampaignList | Yes | All campaigns with status | Implemented |
+| `/campaign/new` | CampaignCreate | Yes | Create new campaign | Implemented |
+| `/campaign/edit/<id>` | CampaignEdit | Yes | Edit existing campaign | Implemented |
+| `/campaign/preview/<id>` | CampaignPreview | Yes | Preview HTML content | Implemented |
+| `/campaign/send-confirm/<id>` | CampaignSendConfirm | Yes | Confirm before send | Implemented |
+| `/campaign/send/<id>` | CampaignSend | Yes | Execute campaign send | Implemented |
+| `/campaign/delete/<id>` | CampaignDelete | Yes | Delete campaign | Implemented |
+| `/test-template` | TestTemplate | Yes | Test email template render | Implemented |
+| `/segments` | SegmentList | Yes | Manage customer segments | Planned Phase 2 |
+| `/qr/<token>` | QRDisplay | No | Public QR code display for SMS | Planned Phase 2 |
+| `/signup` | PublicSignup | No | Public subscription form | Implemented |
+| `/unsubscribe` | Unsubscribe | No | Email unsubscribe handler | Implemented |
+| `/sms-optout` | SMSOptout | No | SMS opt-out handler (Twilio webhook) | Implemented |
+
+**Auth:** HTTP Basic Auth via flask-httpauth. See cross-cutting: Authentication in design.md.
 
 ## View Hierarchy
 
@@ -38,16 +42,17 @@ tags:
 base.html
   |-- dashboard.html
   |-- contacts.html
-  |-- import.html
+  |-- import.html                  [consent checkboxes added]
   |-- preview.html
   |-- sms_preview.html
-  |-- campaigns.html               [IMPLEMENTED]
-  |-- campaign_create.html         [IMPLEMENTED]
-  |-- campaign_edit.html           [IMPLEMENTED]
-  |-- campaign_send_confirm.html   [IMPLEMENTED]
-  |-- unsubscribe.html
+  |-- campaigns.html
+  |-- campaign_create.html
+  |-- campaign_edit.html
+  |-- campaign_send_confirm.html
+  |-- signup.html                  [public form]
+  |-- unsubscribe.html             [public]
   |-- email/
-  |     |-- monday_special.html    [IMPLEMENTED - sample template]
+  |     |-- monday_special.html    [sample template]
   |-- segments/
   |     |-- list.html              [PLANNED Phase 2]
   |-- qr_display.html              [PLANNED Phase 2]
