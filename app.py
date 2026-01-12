@@ -12,7 +12,8 @@ from datetime import datetime
 
 from backend.database import init_db, get_db
 from backend.models import Customer, Campaign
-from backend.csv_importer import import_csv
+from backend.csv_importer import import_csv, is_valid_email
+from backend.sms_service import format_phone_number, validate_phone_number
 from backend.email_service import send_test_email, render_email_template, send_email
 from backend.sms_service import send_test_sms
 from dotenv import load_dotenv
@@ -136,6 +137,94 @@ def import_contacts():
                                  message_type='error')
 
     return render_template('import.html')
+
+@app.route('/contact/add', methods=['POST'])
+@auth.login_required
+def add_single_contact():
+    """Add a single contact manually"""
+    email = request.form.get('email', '').strip().lower()
+    name = request.form.get('name', '').strip()
+    phone_raw = request.form.get('phone', '').strip()
+    segment = request.form.get('segment', '').strip()
+    email_consent = request.form.get('email_consent') == 'on'
+    sms_consent = request.form.get('sms_consent') == 'on'
+
+    # Validate email
+    if not email:
+        return render_template('import.html',
+                             message='Email address is required',
+                             message_type='error')
+
+    if not is_valid_email(email):
+        return render_template('import.html',
+                             message='Invalid email address format',
+                             message_type='error')
+
+    # Format and validate phone if provided
+    phone = None
+    if phone_raw:
+        formatted = format_phone_number(phone_raw)
+        if formatted and validate_phone_number(formatted):
+            phone = formatted
+        else:
+            return render_template('import.html',
+                                 message=f'Invalid phone number format: {phone_raw}',
+                                 message_type='error')
+
+    # Check SMS consent requires phone
+    if sms_consent and not phone:
+        return render_template('import.html',
+                             message='Phone number required for SMS subscription',
+                             message_type='error')
+
+    db = get_db()
+    try:
+        # Check if customer exists
+        existing = Customer.find_by_email(db, email)
+
+        if existing:
+            # Update existing contact
+            if name:
+                existing.name = name
+            if phone:
+                existing.phone = phone
+            if email_consent and not existing.subscribed:
+                existing.subscribed = True
+                existing.opted_in_date = datetime.now()
+            if sms_consent and phone and not existing.sms_subscribed:
+                existing.sms_subscribed = True
+                existing.sms_opted_in_date = datetime.now()
+            if segment:
+                tags = set(existing.segments.split(',')) if existing.segments else set()
+                tags.add(segment)
+                existing.segments = ','.join(filter(None, tags))
+            existing.updated_at = datetime.now()
+            db.commit()
+            return render_template('import.html',
+                                 message=f'Contact updated: {email}',
+                                 message_type='success')
+        else:
+            # Create new contact
+            customer = Customer(
+                email=email,
+                phone=phone,
+                name=name,
+                segments=segment if segment else '',
+                subscribed=email_consent,
+                opted_in_date=datetime.now() if email_consent else None,
+                sms_subscribed=sms_consent and phone is not None,
+                sms_opted_in_date=datetime.now() if (sms_consent and phone) else None
+            )
+            db.add(customer)
+            db.commit()
+            return render_template('import.html',
+                                 message=f'Contact added: {email}',
+                                 message_type='success')
+    except Exception as e:
+        db.rollback()
+        return render_template('import.html',
+                             message=f'Failed to add contact: {str(e)}',
+                             message_type='error')
 
 @app.route('/preview', methods=['GET', 'POST'])
 @auth.login_required

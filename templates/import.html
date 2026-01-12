@@ -3,23 +3,71 @@
 {% block title %}Import Contacts{% endblock %}
 
 {% block content %}
-<h1>Import Contacts from CSV</h1>
+<h1>Import Contacts</h1>
+
+{% if message %}
+<div class="alert {{ message_type }}">
+    {{ message }}
+</div>
+{% endif %}
+
+{% if stats %}
+<div class="alert success">
+    <strong>Import completed!</strong><br>
+    Total rows processed: {{ stats.total_rows }}<br>
+    New contacts added: {{ stats.added }}<br>
+    Existing contacts updated: {{ stats.updated }}
+</div>
+{% endif %}
 
 <div class="card">
-    {% if message %}
-    <div class="alert {{ message_type }}">
-        {{ message }}
-    </div>
-    {% endif %}
+    <h2>Add Single Contact</h2>
+    <p style="color: #666; margin-bottom: 1rem;">Quick add a contact for testing or manual entry.</p>
 
-    {% if stats %}
-    <div class="alert success">
-        <strong>Import completed!</strong><br>
-        Total rows processed: {{ stats.total_rows }}<br>
-        New contacts added: {{ stats.added }}<br>
-        Existing contacts updated: {{ stats.updated }}
-    </div>
-    {% endif %}
+    <form method="POST" action="{{ url_for('add_single_contact') }}">
+        <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+                <label for="single_email">Email Address *</label>
+                <input type="email" id="single_email" name="email" required placeholder="test@example.com">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="single_name">Name</label>
+                <input type="text" id="single_name" name="name" placeholder="John Doe">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+                <label for="single_phone">Phone</label>
+                <input type="tel" id="single_phone" name="phone" placeholder="+11234567890 or 5551234567">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="single_segment">Segment Tag</label>
+                <input type="text" id="single_segment" name="segment" placeholder="e.g., test, vip">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Subscription Consent</label>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="email_consent" checked>
+                    Subscribe to email marketing
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" name="sms_consent">
+                    Subscribe to SMS marketing
+                    <small class="consent-warning">(Requires phone number)</small>
+                </label>
+            </div>
+        </div>
+
+        <button type="submit">Add Contact</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Import from CSV</h2>
 
     <div class="info-box">
         <strong>CSV Formats Supported:</strong><br>
