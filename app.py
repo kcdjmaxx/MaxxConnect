@@ -484,6 +484,24 @@ def get_available_templates():
 
     return sorted(templates, key=lambda x: x['name'])
 
+def get_unique_segments(db):
+    """
+    Get all unique segment tags from customers with counts
+
+    Returns list of dicts: [{'name': 'vip', 'count': 15}, ...]
+    """
+    customers = db.query(Customer).filter(Customer.segments != None, Customer.segments != '').all()
+    segment_counts = {}
+
+    for customer in customers:
+        if customer.segments:
+            for tag in customer.segments.split(','):
+                tag = tag.strip()
+                if tag:
+                    segment_counts[tag] = segment_counts.get(tag, 0) + 1
+
+    return sorted([{'name': k, 'count': v} for k, v in segment_counts.items()], key=lambda x: x['name'])
+
 @app.route('/campaigns')
 @auth.login_required
 def campaigns():
@@ -778,12 +796,16 @@ def campaign_send_confirm(campaign_id):
         sms_only = db.query(Customer).filter_by(sms_subscribed=True, subscribed=False).count()
         both = db.query(Customer).filter_by(subscribed=True, sms_subscribed=True).count()
 
+        # Get unique segments for filtering
+        segments = get_unique_segments(db)
+
         return render_template('campaign_send_confirm.html',
                              campaign=campaign,
                              total_subscribers=total_subscribers,
                              email_only=email_only,
                              sms_only=sms_only,
-                             both=both)
+                             both=both,
+                             segments=segments)
     finally:
         db.close()
 
@@ -804,6 +826,7 @@ def campaign_send(campaign_id):
             return redirect('/campaigns')
 
         # Get form data
+        channel = request.form.get('channel', 'all')
         segment = request.form.get('segment', 'all')
         test_mode = request.form.get('test_mode') == 'on'
         test_email = request.form.get('test_email', '')
@@ -893,15 +916,21 @@ def campaign_send(campaign_id):
                 flash(f'Error sending test email: {str(e)}', 'error')
                 return redirect('/campaigns')
 
-        # Get subscribers based on segment
-        if segment == 'email_only':
-            subscribers = db.query(Customer).filter_by(subscribed=True, sms_subscribed=False).all()
-        elif segment == 'sms_only':
-            subscribers = db.query(Customer).filter_by(sms_subscribed=True, subscribed=False).all()
-        elif segment == 'both':
-            subscribers = db.query(Customer).filter_by(subscribed=True, sms_subscribed=True).all()
+        # Get subscribers based on channel
+        if channel == 'email_only':
+            query = db.query(Customer).filter_by(subscribed=True, sms_subscribed=False)
+        elif channel == 'sms_only':
+            query = db.query(Customer).filter_by(sms_subscribed=True, subscribed=False)
+        elif channel == 'both':
+            query = db.query(Customer).filter_by(subscribed=True, sms_subscribed=True)
         else:  # 'all'
-            subscribers = db.query(Customer).filter_by(subscribed=True).all()
+            query = db.query(Customer).filter_by(subscribed=True)
+
+        # Apply segment filter if specified
+        if segment and segment != 'all':
+            query = query.filter(Customer.segments.like(f'%{segment}%'))
+
+        subscribers = query.all()
 
         sent_count = 0
         failed_count = 0

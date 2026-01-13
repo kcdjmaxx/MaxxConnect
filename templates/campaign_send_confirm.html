@@ -30,13 +30,24 @@
 
     <form method="POST" action="/campaign/send/{{ campaign.id }}">
         <div class="form-group">
-            <label for="segment">Target Audience</label>
-            <select id="segment" name="segment" required>
+            <label for="channel">Target Audience</label>
+            <select id="channel" name="channel" required>
                 <option value="all">All Subscribers ({{ total_subscribers }})</option>
                 <option value="email_only">Email Only ({{ email_only }})</option>
                 <option value="sms_only">SMS Only ({{ sms_only }})</option>
                 <option value="both">Email + SMS ({{ both }})</option>
             </select>
+        </div>
+
+        <div class="form-group">
+            <label for="segment">Contact Segment</label>
+            <select id="segment" name="segment">
+                <option value="all">All Contacts</option>
+                {% for seg in segments %}
+                <option value="{{ seg.name }}">{{ seg.name }} ({{ seg.count }})</option>
+                {% endfor %}
+            </select>
+            <small style="color: #666; display: block; margin-top: 4px;">Filter by segment tag assigned during import</small>
         </div>
 
         <div class="form-group">
@@ -201,6 +212,7 @@ document.getElementById('test_mode').addEventListener('change', function(e) {
 function confirmSend() {
     const testMode = document.getElementById('test_mode').checked;
     const testEmail = document.getElementById('test_email').value;
+    const channel = document.getElementById('channel').options[document.getElementById('channel').selectedIndex].text;
     const segment = document.getElementById('segment').options[document.getElementById('segment').selectedIndex].text;
 
     if (testMode) {
@@ -210,7 +222,11 @@ function confirmSend() {
         }
         return confirm(`Send TEST email to: ${testEmail}\n\nThis will NOT send to your subscribers.`);
     } else {
-        return confirm(`⚠️ SEND TO LIVE SUBSCRIBERS?\n\nTarget: ${segment}\n\nThis will send REAL emails and cannot be undone.\n\nContinue?`);
+        let targetMsg = `Audience: ${channel}`;
+        if (segment !== 'All Contacts') {
+            targetMsg += `\nSegment: ${segment}`;
+        }
+        return confirm(`⚠️ SEND TO LIVE SUBSCRIBERS?\n\n${targetMsg}\n\nThis will send REAL emails and cannot be undone.\n\nContinue?`);
     }
 }
 </script>
