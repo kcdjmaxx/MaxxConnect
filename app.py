@@ -86,6 +86,33 @@ def contacts():
     finally:
         db.close()
 
+# Default segment tags that always appear
+DEFAULT_SEGMENTS = ['test', 'vip', 'new']
+
+@app.route('/api/customer/<int:customer_id>/segments', methods=['POST'])
+@auth.login_required
+def update_customer_segments(customer_id):
+    """Update a customer's segment tags"""
+    db = get_db()
+    try:
+        customer = db.query(Customer).filter_by(id=customer_id).first()
+        if not customer:
+            return {'success': False, 'error': 'Customer not found'}, 404
+
+        data = request.get_json()
+        segments = data.get('segments', [])
+
+        # Clean and join segments
+        customer.segments = ','.join(filter(None, [s.strip() for s in segments]))
+        db.commit()
+
+        return {'success': True, 'segments': customer.segments}
+    except Exception as e:
+        db.rollback()
+        return {'success': False, 'error': str(e)}, 500
+    finally:
+        db.close()
+
 @app.route('/import', methods=['GET', 'POST'])
 @auth.login_required
 def import_contacts():
@@ -489,9 +516,14 @@ def get_unique_segments(db):
     Get all unique segment tags from customers with counts
 
     Returns list of dicts: [{'name': 'vip', 'count': 15}, ...]
+    Includes default segments (test, vip, new) even if count is 0
     """
     customers = db.query(Customer).filter(Customer.segments != None, Customer.segments != '').all()
     segment_counts = {}
+
+    # Initialize default segments with 0 count
+    for default_seg in DEFAULT_SEGMENTS:
+        segment_counts[default_seg] = 0
 
     for customer in customers:
         if customer.segments:

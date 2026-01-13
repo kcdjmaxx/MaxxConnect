@@ -43,7 +43,10 @@
                     <span style="color: #ccc;">-</span>
                     {% endif %}
                 </td>
-                <td>{{ customer.segments or '-' }}</td>
+                <td class="segment-cell" data-customer-id="{{ customer.id }}" data-segments="{{ customer.segments or '' }}">
+                    <span class="segment-display">{{ customer.segments or '-' }}</span>
+                    <button class="btn-edit-segments" onclick="openSegmentEditor(this)" title="Edit segments">✏️</button>
+                </td>
                 <td>{{ customer.opted_in_date.strftime('%Y-%m-%d') if customer.opted_in_date else '-' }}</td>
             </tr>
             {% endfor %}
@@ -53,4 +56,257 @@
     <p>No contacts yet. <a href="/import">Import some contacts</a> to get started!</p>
     {% endif %}
 </div>
+
+<!-- Segment Editor Modal -->
+<div id="segment-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>Edit Segments</h3>
+        <p id="segment-customer-email" style="color: #666; margin-bottom: 16px;"></p>
+
+        <div class="segment-checkboxes">
+            <label><input type="checkbox" value="test"> test</label>
+            <label><input type="checkbox" value="vip"> vip</label>
+            <label><input type="checkbox" value="new"> new</label>
+        </div>
+
+        <div class="custom-segment">
+            <input type="text" id="custom-segment-input" placeholder="Add custom tag...">
+            <button onclick="addCustomSegment()" class="btn btn-sm">Add</button>
+        </div>
+
+        <div id="custom-segments-list"></div>
+
+        <div class="modal-actions">
+            <button onclick="closeSegmentEditor()" class="btn btn-secondary">Cancel</button>
+            <button onclick="saveSegments()" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.segment-cell {
+    position: relative;
+}
+.btn-edit-segments {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    margin-left: 8px;
+    opacity: 0.5;
+    font-size: 12px;
+}
+.btn-edit-segments:hover {
+    opacity: 1;
+}
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.modal-content {
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    min-width: 300px;
+    max-width: 400px;
+}
+.modal-content h3 {
+    margin-top: 0;
+}
+.segment-checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.segment-checkboxes label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+.custom-segment {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.custom-segment input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+#custom-segments-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+.custom-tag {
+    background: #e0e0e0;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.custom-tag button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+}
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.btn-sm {
+    padding: 6px 12px;
+}
+.btn-primary {
+    background: #667eea;
+    color: white;
+}
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+</style>
+
+<script>
+let currentCustomerId = null;
+let currentCell = null;
+let customSegments = [];
+const defaultSegments = ['test', 'vip', 'new'];
+
+function openSegmentEditor(button) {
+    const cell = button.closest('.segment-cell');
+    currentCustomerId = cell.dataset.customerId;
+    currentCell = cell;
+
+    const email = cell.closest('tr').querySelector('td').textContent;
+    document.getElementById('segment-customer-email').textContent = email;
+
+    // Parse current segments
+    const currentSegments = cell.dataset.segments ? cell.dataset.segments.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+    // Check default segment checkboxes
+    document.querySelectorAll('.segment-checkboxes input').forEach(cb => {
+        cb.checked = currentSegments.includes(cb.value);
+    });
+
+    // Set custom segments (those not in default list)
+    customSegments = currentSegments.filter(s => !defaultSegments.includes(s));
+    renderCustomSegments();
+
+    document.getElementById('segment-modal').style.display = 'flex';
+}
+
+function closeSegmentEditor() {
+    document.getElementById('segment-modal').style.display = 'none';
+    currentCustomerId = null;
+    currentCell = null;
+    customSegments = [];
+    document.getElementById('custom-segment-input').value = '';
+}
+
+function addCustomSegment() {
+    const input = document.getElementById('custom-segment-input');
+    const tag = input.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+
+    if (tag && !customSegments.includes(tag) && !defaultSegments.includes(tag)) {
+        customSegments.push(tag);
+        renderCustomSegments();
+    }
+    input.value = '';
+}
+
+function removeCustomSegment(tag) {
+    customSegments = customSegments.filter(s => s !== tag);
+    renderCustomSegments();
+}
+
+function renderCustomSegments() {
+    const container = document.getElementById('custom-segments-list');
+    container.innerHTML = customSegments.map(tag =>
+        `<span class="custom-tag">${tag} <button onclick="removeCustomSegment('${tag}')">×</button></span>`
+    ).join('');
+}
+
+function saveSegments() {
+    // Gather all selected segments
+    const segments = [];
+
+    document.querySelectorAll('.segment-checkboxes input:checked').forEach(cb => {
+        segments.push(cb.value);
+    });
+
+    segments.push(...customSegments);
+
+    // Send to API
+    fetch(`/api/customer/${currentCustomerId}/segments`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ segments: segments })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the display
+            currentCell.dataset.segments = data.segments;
+            currentCell.querySelector('.segment-display').textContent = data.segments || '-';
+            closeSegmentEditor();
+        } else {
+            alert('Error saving segments: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error saving segments: ' + error);
+    });
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeSegmentEditor();
+    }
+});
+
+// Close modal on background click
+document.getElementById('segment-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeSegmentEditor();
+    }
+});
+
+// Allow adding custom segment with Enter key
+document.getElementById('custom-segment-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        addCustomSegment();
+    }
+});
+</script>
 {% endblock %}
