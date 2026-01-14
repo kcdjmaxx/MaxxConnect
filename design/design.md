@@ -190,7 +190,7 @@ Email/SMS marketing platform with:
 
 ## Summary
 
-**Status:** Phase 2 In Progress (Async Queue Complete)
+**Status:** Phase 2 In Progress (Async Queue Complete + Deployed)
 - CRC Cards: 14 (10 implemented, 4 planned)
 - Sequences: 13 (9 implemented, 4 planned)
 - UI Specs: 7 (4 implemented, 3 planned)
@@ -204,3 +204,27 @@ Email/SMS marketing platform with:
 - Updated campaign_send route for non-blocking sends
 - Added progress API endpoints and UI polling
 - Updated Procfile for Railway worker deployment
+- Successfully deployed to Railway (Jan 2026)
+
+## Railway Deployment Notes
+
+The async queue requires **two Railway services** from the same repo:
+
+### Web Service
+- Uses default Procfile (`web: gunicorn app:app`)
+- Connects to: PostgreSQL, Redis
+
+### Worker Service
+- Custom start command: `celery -A backend.tasks.celery_app worker --loglevel=info --concurrency=2`
+- Connects to: PostgreSQL, Redis
+- **Required environment variables** (copy from web service):
+  - `DATABASE_URL` (reference from PostgreSQL)
+  - `REDIS_URL` (reference from Redis)
+  - `ENCRYPTION_KEY`
+  - `SENDGRID_API_KEY`
+  - `SENDER_EMAIL`
+  - `SENDER_NAME` or `BUSINESS_NAME`
+
+### Configuration
+- Removed `startCommand` from `railway.toml` to allow per-service commands
+- Rate limits configurable via `EMAIL_RATE_LIMIT` (default 100/min) and `SMS_RATE_LIMIT` (default 10/min)

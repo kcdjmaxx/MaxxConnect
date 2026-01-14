@@ -36,6 +36,18 @@ Flask Web UI → Database → Email/SMS Services (SendGrid/Twilio)
               QR Codes → iOS Scanner → API Validation → Redemption Tracking
 ```
 
+### Railway Deployment (Production)
+
+Two services from the same repo:
+
+**Web Service:**
+- Start command: `gunicorn app:app` (from Procfile)
+- Connects to: PostgreSQL, Redis
+
+**Worker Service:**
+- Start command: `celery -A backend.tasks.celery_app worker --loglevel=info --concurrency=2`
+- Required env vars (copy from web): `DATABASE_URL`, `REDIS_URL`, `ENCRYPTION_KEY`, `SENDGRID_API_KEY`, `SENDER_EMAIL`, `BUSINESS_NAME`
+
 ## Database Schema
 
 Core entities to track:
@@ -56,7 +68,7 @@ Start with SQLite for development, PostgreSQL for production.
 - Flask (unified web app + REST API)
 - SQLAlchemy (ORM)
 - Jinja2 (HTML templates)
-- Celery + Redis (email/SMS queue system - Phase 2)
+- Celery + Redis (async email/SMS queue with rate limiting)
 
 **Email:**
 - SendGrid (email delivery API)
@@ -257,10 +269,12 @@ Required setup:
   - Base64 encoding for development ✓
   - External URLs for production ✓
 
-**Phase 2 - QR Code & Redemption:**
+**Phase 2 - QR Code & Redemption:** (IN PROGRESS)
+- Async email/SMS queue with Celery + Redis ✓
+- Rate limiting (100 email/min, 10 SMS/min) ✓
+- Progress tracking UI with live polling ✓
 - QR code generation with unique tokens
 - Customer segmentation/tagging
-- Email queue with rate limiting
 - Campaign analytics and tracking
 
 **Phase 3 - Redemption System:**
