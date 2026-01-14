@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 
 from backend.database import init_db, get_db
-from backend.models import Customer, Campaign
+from backend.models import Customer, Campaign, CampaignSend
 from backend.csv_importer import import_csv, is_valid_email
 from backend.sms_service import format_phone_number, validate_phone_number
 from backend.email_service import send_test_email, render_email_template, send_email
@@ -112,6 +112,94 @@ def update_customer_segments(customer_id):
         return {'success': False, 'error': str(e)}, 500
     finally:
         db.close()
+
+
+@app.route('/api/campaign-send/<int:send_id>/progress')
+@auth.login_required
+def campaign_send_progress(send_id):
+    """
+    Get progress of a campaign send operation
+
+    Returns JSON with sent/failed counts and percentage
+    """
+    db = get_db()
+    try:
+        send_record = db.query(CampaignSend).filter_by(id=send_id).first()
+
+        if not send_record:
+            return {'error': 'Send record not found'}, 404
+
+        # Check if complete and update status
+        if send_record.is_complete() and send_record.status == 'sending':
+            send_record.status = 'completed'
+            send_record.completed_at = datetime.now()
+
+            # Update campaign status
+            campaign = db.query(Campaign).filter_by(id=send_record.campaign_id).first()
+            if campaign:
+                campaign.status = 'sent'
+                campaign.sent_date = datetime.now()
+            db.commit()
+
+        return {
+            'send_id': send_id,
+            'campaign_id': send_record.campaign_id,
+            'total_emails': send_record.total_emails,
+            'emails_sent': send_record.emails_sent,
+            'emails_failed': send_record.emails_failed,
+            'progress_percent': send_record.progress_percent(),
+            'status': send_record.status,
+            'started_at': send_record.started_at.isoformat() if send_record.started_at else None,
+            'completed_at': send_record.completed_at.isoformat() if send_record.completed_at else None
+        }
+    finally:
+        db.close()
+
+
+@app.route('/api/campaign/<int:campaign_id>/progress')
+@auth.login_required
+def campaign_progress(campaign_id):
+    """
+    Get progress of the latest send for a campaign
+
+    Returns JSON with sent/failed counts and percentage
+    """
+    db = get_db()
+    try:
+        # Get the most recent CampaignSend for this campaign
+        send_record = db.query(CampaignSend).filter_by(
+            campaign_id=campaign_id
+        ).order_by(CampaignSend.started_at.desc()).first()
+
+        if not send_record:
+            return {'error': 'No send record found for campaign'}, 404
+
+        # Check if complete and update status
+        if send_record.is_complete() and send_record.status == 'sending':
+            send_record.status = 'completed'
+            send_record.completed_at = datetime.now()
+
+            # Update campaign status
+            campaign = db.query(Campaign).filter_by(id=campaign_id).first()
+            if campaign:
+                campaign.status = 'sent'
+                campaign.sent_date = datetime.now()
+            db.commit()
+
+        return {
+            'send_id': send_record.id,
+            'campaign_id': campaign_id,
+            'total_emails': send_record.total_emails,
+            'emails_sent': send_record.emails_sent,
+            'emails_failed': send_record.emails_failed,
+            'progress_percent': send_record.progress_percent(),
+            'status': send_record.status,
+            'started_at': send_record.started_at.isoformat() if send_record.started_at else None,
+            'completed_at': send_record.completed_at.isoformat() if send_record.completed_at else None
+        }
+    finally:
+        db.close()
+
 
 @app.route('/import', methods=['GET', 'POST'])
 @auth.login_required
@@ -963,59 +1051,39 @@ def campaign_send(campaign_id):
             query = query.filter(Customer.segments.like(f'%{segment}%'))
 
         subscribers = query.all()
+        total_count = len(subscribers)
 
-        sent_count = 0
-        failed_count = 0
+        if total_count == 0:
+            flash('No subscribers match the selected criteria', 'warning')
+            return redirect(f'/campaign/send-confirm/{campaign_id}')
 
-        # Import here to avoid circular imports
-        from backend.config import Config
-        from backend.image_handler import ImageHandler
+        # Create CampaignSend record for progress tracking
+        campaign_send_record = CampaignSend(
+            campaign_id=campaign_id,
+            total_emails=total_count,
+            emails_sent=0,
+            emails_failed=0,
+            status='sending'
+        )
+        db.add(campaign_send_record)
+        db.commit()
+        campaign_send_id = campaign_send_record.id
+
+        # Queue all tasks (non-blocking)
+        from backend.tasks.email_task import send_campaign_email
 
         for customer in subscribers:
-            # Generate personalized content
-            # Extract first name only for friendlier greeting
-            first_name = customer.name.split()[0] if customer.name else 'Valued Customer'
-            template_vars = {
-                'customer_name': first_name,
-                'unsubscribe_link': url_for('unsubscribe',
-                                           email=customer.email,
-                                           token=customer.get_unsubscribe_token(),
-                                           _external=True)
-            }
-
-            # Add image URLs based on environment
-            if Config.is_development():
-                template_vars['logo_base64'] = ImageHandler.get_image_url('FNFWebLogo200x50.png').replace('data:image/png;base64,', '')
-                template_vars['hero_image_base64'] = ImageHandler.get_image_url('FNFFront600x300.png').replace('data:image/png;base64,', '')
-            else:
-                template_vars['logo_url'] = url_for('static', filename='images/FNFWebLogo200x50.png', _external=True)
-                template_vars['hero_image_url'] = url_for('static', filename='images/FNFFront600x300.png', _external=True)
-
-            # Only include QR code if campaign has it enabled
-            if campaign.has_qr_code:
-                # TODO: Generate unique QR code per customer
-                template_vars['qr_code_base64'] = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-
-            # Render fresh from template file with all variables
-            personalized_html = render_template(
-                campaign.template_name,
-                **template_vars
+            send_campaign_email.delay(
+                campaign_id=campaign.id,
+                customer_id=customer.id,
+                campaign_send_id=campaign_send_id
             )
 
-            # Send email
-            result = send_email(customer.email, customer.name or 'Valued Customer', campaign.subject, personalized_html)
-
-            if result.get('success'):
-                sent_count += 1
-            else:
-                failed_count += 1
-
-        # Update campaign status
-        campaign.status = 'sent'
-        campaign.sent_date = datetime.now()
+        # Update campaign status to 'sending'
+        campaign.status = 'sending'
         db.commit()
 
-        flash(f'✓ Campaign sent! {sent_count} emails sent successfully, {failed_count} failed.', 'success')
+        flash(f'Campaign queued! Sending to {total_count} subscribers in background. Check campaigns page for progress.', 'success')
         return redirect('/campaigns')
 
     except Exception as e:

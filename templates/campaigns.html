@@ -23,7 +23,7 @@
     </thead>
     <tbody>
         {% for campaign in campaigns %}
-        <tr>
+        <tr data-campaign-id="{{ campaign.id }}" data-status="{{ campaign.status }}">
             <td>
                 <a href="/campaign/edit/{{ campaign.id }}" class="campaign-name">
                     {{ campaign.name or 'Untitled' }}
@@ -31,10 +31,19 @@
             </td>
             <td>{{ campaign.subject }}</td>
             <td>{{ campaign.template_name or 'N/A' }}</td>
-            <td>
+            <td class="status-cell">
+                {% if campaign.status == 'sending' %}
+                <div class="progress-container" id="progress-{{ campaign.id }}">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <small class="progress-text">Starting...</small>
+                </div>
+                {% else %}
                 <span class="badge badge-{{ campaign.status }}">
                     {{ campaign.status or 'draft' }}
                 </span>
+                {% endif %}
             </td>
             <td>{{ campaign.created_at.strftime('%Y-%m-%d %H:%M') if campaign.created_at else 'N/A' }}</td>
             <td class="actions">
@@ -76,5 +85,77 @@
 .actions form {
     display: inline;
 }
+.progress-container {
+    min-width: 120px;
+}
+.progress-bar {
+    background: #e5e7eb;
+    border-radius: 4px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+.progress-fill {
+    background: #2563eb;
+    height: 100%;
+    transition: width 0.3s ease;
+}
+.progress-text {
+    color: #6b7280;
+    font-size: 0.75rem;
+}
+.badge-sending {
+    background: #3b82f6;
+    color: white;
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Find all sending campaigns and poll for progress
+    const sendingRows = document.querySelectorAll('tr[data-status="sending"]');
+
+    sendingRows.forEach(function(row) {
+        const campaignId = row.dataset.campaignId;
+        pollProgress(campaignId);
+    });
+
+    function pollProgress(campaignId) {
+        fetch(`/api/campaign/${campaignId}/progress`)
+            .then(r => r.json())
+            .then(data => {
+                const container = document.getElementById(`progress-${campaignId}`);
+                if (!container) return;
+
+                const fill = container.querySelector('.progress-fill');
+                const text = container.querySelector('.progress-text');
+
+                if (data.error) {
+                    text.textContent = 'Error loading progress';
+                    return;
+                }
+
+                fill.style.width = `${data.progress_percent}%`;
+                text.textContent = `${data.emails_sent}/${data.total_emails} sent`;
+
+                if (data.emails_failed > 0) {
+                    text.textContent += ` (${data.emails_failed} failed)`;
+                }
+
+                // Keep polling if still sending
+                if (data.status === 'sending') {
+                    setTimeout(() => pollProgress(campaignId), 2000);
+                } else {
+                    // Completed - reload page to update status
+                    setTimeout(() => location.reload(), 1000);
+                }
+            })
+            .catch(err => {
+                console.error('Error polling progress:', err);
+                // Retry in 5 seconds on error
+                setTimeout(() => pollProgress(campaignId), 5000);
+            });
+    }
+});
+</script>
 {% endblock %}

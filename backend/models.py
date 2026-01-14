@@ -121,3 +121,40 @@ class Campaign(Base):
     def requires_qr_generation(self):
         """Check if campaign needs QR codes during send"""
         return self.has_qr_code is True
+
+
+class CampaignSend(Base):
+    """
+    Track progress of a campaign send operation
+
+    CRC: crc-CampaignManager.md
+    Seq: seq-campaign-send.md
+    """
+    __tablename__ = 'campaign_sends'
+
+    id = Column(Integer, primary_key=True)
+    campaign_id = Column(Integer, nullable=False, index=True)
+    total_emails = Column(Integer, default=0)
+    emails_sent = Column(Integer, default=0)
+    emails_failed = Column(Integer, default=0)
+    total_sms = Column(Integer, default=0)
+    sms_sent = Column(Integer, default=0)
+    sms_failed = Column(Integer, default=0)
+    status = Column(String(50), default='pending')  # pending, sending, completed, failed
+    started_at = Column(DateTime, default=func.now())
+    completed_at = Column(DateTime, nullable=True)
+
+    def progress_percent(self):
+        """Calculate percentage of messages processed"""
+        total = self.total_emails + self.total_sms
+        processed = self.emails_sent + self.sms_sent + self.emails_failed + self.sms_failed
+        return int((processed / total * 100)) if total > 0 else 0
+
+    def is_complete(self):
+        """Check if all messages have been processed"""
+        total = self.total_emails + self.total_sms
+        processed = self.emails_sent + self.sms_sent + self.emails_failed + self.sms_failed
+        return processed >= total
+
+    def __repr__(self):
+        return f"<CampaignSend campaign_id={self.campaign_id} {self.emails_sent}/{self.total_emails}>"

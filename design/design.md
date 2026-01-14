@@ -104,13 +104,13 @@ Email/SMS marketing platform with:
 - crc-SegmentManager.md
   - [ ] backend/services/segment_manager.py - Phase 2
 - crc-CeleryApp.md
-  - [ ] backend/tasks/celery_app.py - Phase 2
+  - [x] backend/tasks/celery_app.py
 - crc-EmailQueueTask.md
-  - [ ] backend/tasks/email_task.py - Phase 2
+  - [x] backend/tasks/email_task.py
 - crc-SMSQueueTask.md
-  - [ ] backend/tasks/sms_task.py - Phase 2
+  - [x] backend/tasks/sms_task.py
 - crc-RateLimiter.md
-  - [ ] backend/services/rate_limiter.py - Phase 2
+  - [x] backend/services/rate_limiter.py
 - crc-CampaignAnalytics.md
   - [ ] backend/services/campaign_analytics.py - Phase 3
 
@@ -127,13 +127,13 @@ Email/SMS marketing platform with:
 - seq-campaign-send-qr.md
   - [ ] Phase 2 (QR toggle feature)
 - seq-email-process.md
-  - [ ] Phase 2
+  - [x] backend/tasks/email_task.py
 - seq-sms-process.md
-  - [ ] Phase 2
+  - [x] backend/tasks/sms_task.py
 - seq-email-retry.md
-  - [ ] Phase 2
+  - [x] backend/tasks/email_task.py (retry logic)
 - seq-sms-retry.md
-  - [ ] Phase 2
+  - [x] backend/tasks/sms_task.py (retry logic)
 - seq-qr-generate.md
   - [ ] Phase 2
 - seq-segment-filter.md
@@ -190,15 +190,17 @@ Email/SMS marketing platform with:
 
 ## Summary
 
-**Status:** Phase 1 Complete, Phase 2 Ready
-- CRC Cards: 14 (6 implemented, 8 planned)
-- Sequences: 13 (5 implemented, 8 planned)
+**Status:** Phase 2 In Progress (Async Queue Complete)
+- CRC Cards: 14 (10 implemented, 4 planned)
+- Sequences: 13 (9 implemented, 4 planned)
 - UI Specs: 7 (4 implemented, 3 planned)
 - Test Designs: 6 (complete)
 
 **Recent Updates:**
-- Added Dashboard Stats to cross-cutting concerns (SMS unsubscribe counter logic)
-- Added HTTP Basic Auth (cross-cutting concern)
-- Added crc-CSVImporter.md with consent handling
-- Added seq-csv-import.md sequence
-- Updated manifest-ui.md with Auth column
+- Implemented Celery + Redis async queue system
+- Added CampaignSend model for progress tracking
+- Added email_task.py and sms_task.py background tasks
+- Added rate_limiter.py service
+- Updated campaign_send route for non-blocking sends
+- Added progress API endpoints and UI polling
+- Updated Procfile for Railway worker deployment
