@@ -40,12 +40,6 @@ celery_app.conf.update(
     # Timezone
     timezone='America/Chicago',
 
-    # Task routing - separate queues for email and SMS
-    task_routes={
-        'backend.tasks.email_task.*': {'queue': 'email_queue'},
-        'backend.tasks.sms_task.*': {'queue': 'sms_queue'},
-    },
-
     # Default retry settings
     task_default_retry_delay=2,
     task_max_retries=3,
