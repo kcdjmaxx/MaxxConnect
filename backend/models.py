@@ -4,7 +4,7 @@ Database Models - Customer and Campaign entities
 CRC: crc-Customer.md, crc-Campaign.md
 Spec: phase-2-campaign-management.md
 """
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.ext.hybrid import hybrid_property
 from backend.database import Base
@@ -158,3 +158,46 @@ class CampaignSend(Base):
 
     def __repr__(self):
         return f"<CampaignSend campaign_id={self.campaign_id} {self.emails_sent}/{self.total_emails}>"
+
+
+class QRCode(Base):
+    """
+    Unique QR code for campaign redemption tracking
+
+    CRC: crc-QRCode.md
+    Seq: seq-campaign-send-qr.md
+    """
+    __tablename__ = 'qr_codes'
+
+    id = Column(Integer, primary_key=True)
+    campaign_id = Column(Integer, ForeignKey('campaigns.id'), nullable=False, index=True)
+    customer_id = Column(Integer, ForeignKey('customers.id'), nullable=False, index=True)
+    token = Column(String(100), unique=True, nullable=False, index=True)
+    created_at = Column(DateTime, default=func.now())
+    expires_at = Column(DateTime, nullable=False)
+    usage_count = Column(Integer, default=0)
+    max_usage = Column(Integer, default=1)
+    redeemed_at = Column(DateTime, nullable=True)
+
+    def is_expired(self):
+        """Check if QR code has expired"""
+        from datetime import datetime
+        return datetime.utcnow() > self.expires_at
+
+    def can_redeem(self):
+        """Check if QR code can still be redeemed"""
+        return self.usage_count < self.max_usage
+
+    def is_valid(self):
+        """Check if QR code is valid for redemption"""
+        return not self.is_expired() and self.can_redeem()
+
+    def increment_usage(self):
+        """Mark QR code as used"""
+        from datetime import datetime
+        self.usage_count += 1
+        if self.redeemed_at is None:
+            self.redeemed_at = datetime.utcnow()
+
+    def __repr__(self):
+        return f"<QRCode token={self.token[:20]}... campaign={self.campaign_id}>"

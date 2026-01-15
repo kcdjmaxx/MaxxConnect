@@ -9,6 +9,7 @@ from backend.database import SessionLocal
 from backend.models import Customer, Campaign, CampaignSend
 from backend.email_service import send_email
 from backend.services.rate_limiter import RateLimiter
+from backend.services import qr_generator
 from backend.config import Config
 from backend.image_handler import ImageHandler
 from jinja2 import Template
@@ -23,7 +24,7 @@ def get_db():
     return SessionLocal()
 
 
-def build_template_vars(customer, campaign, base_url):
+def build_template_vars(db, customer, campaign, base_url):
     """
     Build template variables for email personalization
 
@@ -51,8 +52,20 @@ def build_template_vars(customer, campaign, base_url):
 
     # QR code if campaign has it enabled
     if campaign.has_qr_code:
-        # TODO: Generate unique QR code per customer (Phase 2)
-        template_vars['qr_code_base64'] = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+        try:
+            # Check if QR code already exists for this customer/campaign
+            existing_qr = qr_generator.get_existing_qr_code(db, campaign.id, customer.id)
+            if existing_qr:
+                # Regenerate image from existing token
+                template_vars['qr_code_base64'] = qr_generator.regenerate_base64(existing_qr, base_url)
+                logger.info(f"Reused existing QR code for customer {customer.id}")
+            else:
+                # Generate new QR code
+                result = qr_generator.create_qr_code(db, campaign, customer, base_url)
+                template_vars['qr_code_base64'] = result['base64']
+        except Exception as e:
+            logger.error(f"Failed to generate QR code for customer {customer.id}: {e}")
+            # Continue without QR code rather than failing the email
 
     return template_vars
 
@@ -119,9 +132,9 @@ def send_campaign_email(self, campaign_id, customer_id, campaign_send_id=None):
                 update_send_progress(db, campaign_send_id, success=False, error='Unsubscribed')
             return {'success': False, 'error': 'Customer unsubscribed', 'skipped': True}
 
-        # Build template variables
+        # Build template variables (including QR code generation if enabled)
         base_url = Config.BASE_URL
-        template_vars = build_template_vars(customer, campaign, base_url)
+        template_vars = build_template_vars(db, customer, campaign, base_url)
 
         # Render template (using Jinja2 directly since no Flask context)
         # The campaign.html_content contains the raw template
