@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 
 from backend.database import init_db, get_db
-from backend.models import Customer, Campaign, CampaignSend
+from backend.models import Customer, Campaign, CampaignSend, QRCode
 from backend.csv_importer import import_csv, is_valid_email
 from backend.sms_service import format_phone_number, validate_phone_number
 from backend.email_service import send_test_email, render_email_template, send_email
