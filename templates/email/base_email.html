@@ -8,6 +8,15 @@
     <div style="background-color: white; padding: 2rem; border-radius: 8px;">
         <!-- Custom email content goes here -->
         {{ email_body|safe }}
+
+        <!-- QR Code Section (only renders if qr_code_base64 is set) -->
+        {% if qr_code_base64 %}
+        <div style="margin-top: 30px; padding: 20px; background-color: #f8f8f8; border-radius: 8px; text-align: center;">
+            <p style="margin: 0 0 10px 0; font-weight: bold; color: #d32f2f; font-size: 14px;">SHOW THIS QR CODE TO REDEEM:</p>
+            <img src="data:image/png;base64,{{ qr_code_base64 }}" width="180" height="180" alt="Redemption QR Code" style="display: block; margin: 0 auto;">
+            <p style="margin: 10px 0 0 0; font-size: 11px; color: #888888;">One-time use only.</p>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Footer (Legal requirement) -->
