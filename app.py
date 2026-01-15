@@ -679,8 +679,11 @@ def campaign_new():
                     template_vars['logo_url'] = url_for('static', filename='images/FNFWebLogo200x50.png', _external=True)
                     template_vars['hero_image_url'] = url_for('static', filename='images/FNFFront600x300.png', _external=True)
 
-                # Do NOT render QR code here - leave {{ qr_code_base64 }} as placeholder
-                # QR codes are generated at send time, unique per customer
+                # Only include QR code if checkbox is checked
+                has_qr_code = request.form.get('has_qr_code') == 'on'
+                if has_qr_code:
+                    template_vars['qr_code_base64'] = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
                 html_content = render_template(template, **template_vars)
             except Exception as e:
                 flash(f'Error rendering template: {str(e)}', 'error')
@@ -705,34 +708,22 @@ def campaign_new():
                 # Handle test mode - send only to test email
                 if test_mode and test_email:
                     try:
-                        from backend.config import Config
-                        from backend.image_handler import ImageHandler
-
                         # Generate personalized test email
                         template_vars = {
                             'customer_name': 'Test Customer',
                             'unsubscribe_link': '#test-unsubscribe'
                         }
 
-                        # Add image URLs based on environment
-                        if Config.is_development():
-                            template_vars['logo_base64'] = ImageHandler.get_image_url('FNFWebLogo200x50.png').replace('data:image/png;base64,', '')
-                            template_vars['hero_image_base64'] = ImageHandler.get_image_url('FNFFront600x300.png').replace('data:image/png;base64,', '')
-                        else:
-                            template_vars['logo_url'] = url_for('static', filename='images/FNFWebLogo200x50.png', _external=True)
-                            template_vars['hero_image_url'] = url_for('static', filename='images/FNFFront600x300.png', _external=True)
-
                         # Generate real QR code for test if campaign has it enabled
                         if campaign.has_qr_code:
+                            from backend.config import Config
                             test_token = f"TEST-{campaign.id}-preview"
                             test_url = f"{Config.BASE_URL}/redeem/{test_token}"
                             qr_image = qr_generator.generate_qr_image(test_url)
                             template_vars['qr_code_base64'] = qr_generator.encode_base64(qr_image)
 
-                        # Render from original template file (not stored html_content)
-                        # to preserve QR code placeholders
-                        personalized_html = render_template(
-                            campaign.template_name,
+                        personalized_html = render_template_string(
+                            campaign.html_content,
                             **template_vars
                         )
 
@@ -842,8 +833,9 @@ def campaign_edit(campaign_id):
                         template_vars['logo_url'] = url_for('static', filename='images/FNFWebLogo200x50.png', _external=True)
                         template_vars['hero_image_url'] = url_for('static', filename='images/FNFFront600x300.png', _external=True)
 
-                    # Do NOT render QR code here - leave {{ qr_code_base64 }} as placeholder
-                    # QR codes are generated at send time, unique per customer
+                    # Only include QR code if campaign has it enabled (use updated value)
+                    if new_has_qr_code:
+                        template_vars['qr_code_base64'] = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
 
                     # Use new template if changed, otherwise use existing
                     template_to_render = template if template != campaign.template_name else campaign.template_name
