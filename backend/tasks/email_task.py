@@ -136,11 +136,15 @@ def send_campaign_email(self, campaign_id, customer_id, campaign_send_id=None):
         base_url = Config.BASE_URL
         template_vars = build_template_vars(db, customer, campaign, base_url)
 
-        # Render template (using Jinja2 directly since no Flask context)
-        # The campaign.html_content contains the raw template
-        # But we need to render from the template file for proper personalization
-        # For now, use Jinja2 Template with the stored html_content
-        template = Template(campaign.html_content)
+        # Render from original template file to preserve QR code placeholders
+        # The stored html_content has {% if qr_code_base64 %} already evaluated,
+        # so we must re-render from the source template
+        import os
+        from jinja2 import Environment, FileSystemLoader
+
+        templates_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'templates')
+        env = Environment(loader=FileSystemLoader(templates_dir))
+        template = env.get_template(campaign.template_name)
         personalized_html = template.render(**template_vars)
 
         # Send email
