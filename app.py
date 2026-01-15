@@ -16,6 +16,7 @@ from backend.csv_importer import import_csv, is_valid_email
 from backend.sms_service import format_phone_number, validate_phone_number
 from backend.email_service import send_test_email, render_email_template, send_email
 from backend.sms_service import send_test_sms
+from backend.services import qr_generator
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -713,9 +714,13 @@ def campaign_new():
                             'unsubscribe_link': '#test-unsubscribe'
                         }
 
-                        # Only include QR code if campaign has it enabled
+                        # Generate real QR code for test if campaign has it enabled
                         if campaign.has_qr_code:
-                            template_vars['qr_code_base64'] = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+                            from backend.config import Config
+                            test_token = f"TEST-{campaign.id}-preview"
+                            test_url = f"{Config.BASE_URL}/redeem/{test_token}"
+                            qr_image = qr_generator.generate_qr_image(test_url)
+                            template_vars['qr_code_base64'] = qr_generator.encode_base64(qr_image)
 
                         personalized_html = render_template_string(
                             campaign.html_content,
@@ -997,9 +1002,12 @@ def campaign_send(campaign_id):
                     print(f"DEBUG: logo_url = {template_vars['logo_url']}")
                     print(f"DEBUG: hero_image_url = {template_vars['hero_image_url']}")
 
-                # Only include QR code if campaign has it enabled
+                # Generate real QR code for test if campaign has it enabled
                 if campaign.has_qr_code:
-                    template_vars['qr_code_base64'] = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+                    test_token = f"TEST-{campaign.id}-{test_customer.id if test_customer else 'preview'}"
+                    test_url = f"{Config.BASE_URL}/redeem/{test_token}"
+                    qr_image = qr_generator.generate_qr_image(test_url)
+                    template_vars['qr_code_base64'] = qr_generator.encode_base64(qr_image)
 
                 print(f"DEBUG: Template vars keys: {list(template_vars.keys())}")
 
