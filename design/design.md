@@ -27,11 +27,12 @@ Email/SMS marketing platform with:
 **Purpose:** Create, configure, and send marketing campaigns
 **Design Elements:** crc-Campaign.md, crc-CampaignManager.md, crc-ImageHandler.md, crc-Config.md
 
-### QR Code System (PLANNED - Phase 2)
+### QR Code System (IMPLEMENTED)
 **Purpose:** Generate unique QR codes for redemption tracking
-**Design Elements:** crc-QRCode.md, crc-QRCodeGenerator.md
+**Design Elements:** crc-QRCode.md, crc-QRCodeGenerator.md, crc-EmailService.md
+**Implementation:** CID (Content-ID) embedding for Gmail compatibility
 
-### Async Queue System (PLANNED - Phase 2)
+### Async Queue System (IMPLEMENTED)
 **Purpose:** Background processing with rate limiting
 **Design Elements:** crc-CeleryApp.md, crc-EmailQueueTask.md, crc-SMSQueueTask.md, crc-RateLimiter.md
 
@@ -98,9 +99,11 @@ Email/SMS marketing platform with:
   - [x] backend/models.py (email_hash, phone_hash, find_by_email, find_by_phone)
   - [ ] backend/models.py (segment helper methods)
 - crc-QRCode.md
-  - [ ] backend/models.py (QRCode class) - Phase 2
+  - [x] backend/models.py (QRCode class)
 - crc-QRCodeGenerator.md
-  - [ ] backend/services/qr_generator.py - Phase 2
+  - [x] backend/services/qr_generator.py
+- crc-EmailService.md
+  - [x] backend/email_service.py (CID attachment support)
 - crc-SegmentManager.md
   - [ ] backend/services/segment_manager.py - Phase 2
 - crc-CeleryApp.md
@@ -125,7 +128,8 @@ Email/SMS marketing platform with:
 - seq-campaign-send.md
   - [x] app.py (campaign_send)
 - seq-campaign-send-qr.md
-  - [ ] Phase 2 (QR toggle feature)
+  - [x] backend/tasks/email_task.py (CID embedding)
+  - [x] backend/email_service.py (inline attachments)
 - seq-email-process.md
   - [x] backend/tasks/email_task.py
 - seq-sms-process.md
@@ -135,7 +139,7 @@ Email/SMS marketing platform with:
 - seq-sms-retry.md
   - [x] backend/tasks/sms_task.py (retry logic)
 - seq-qr-generate.md
-  - [ ] Phase 2
+  - [x] backend/services/qr_generator.py
 - seq-segment-filter.md
   - [x] app.py (audience selection)
 - seq-segment-manage.md
@@ -175,36 +179,45 @@ Email/SMS marketing platform with:
 - Phase 3 analytics designed but not implemented
 
 ### Design to Code
-- B1: Campaign model needs Phase 2 fields (qr_expiration_days, rate limits, etc.)
-- B2: QRCode model not yet created
-- B3: Customer.segments helpers missing (get_segments_list, add_segment, etc.)
-- B4: No backend/services/ directory yet
-- B5: No Celery infrastructure yet
+- [x] ~~B1: Campaign model needs Phase 2 fields~~ (has_qr_code implemented)
+- [x] ~~B2: QRCode model not yet created~~ (implemented)
+- [ ] B3: Customer.segments helpers missing (get_segments_list, add_segment, etc.)
+- [x] ~~B4: No backend/services/ directory yet~~ (qr_generator.py, rate_limiter.py)
+- [x] ~~B5: No Celery infrastructure yet~~ (implemented and deployed)
 
 ### Code to Design
-- All implemented code has corresponding design artifacts
+- [x] crc-EmailService.md created for CID attachment support
 
 ### Deferred
-- seq-qr-validate.md: Deferred to Phase 3
+- seq-qr-validate.md: Deferred to Phase 3 (redemption scanning)
 - Webhook handling for bounces: Phase 4
+- ui-qr-display.md: QR display in iOS scanner app (Phase 3)
 
 ## Summary
 
-**Status:** Phase 2 In Progress (Async Queue Complete + Deployed)
-- CRC Cards: 14 (10 implemented, 4 planned)
-- Sequences: 13 (9 implemented, 4 planned)
+**Status:** Phase 2 Complete (QR Codes + Async Queue Deployed)
+- CRC Cards: 15 (13 implemented, 2 planned)
+- Sequences: 13 (11 implemented, 2 planned)
 - UI Specs: 7 (4 implemented, 3 planned)
 - Test Designs: 6 (complete)
 
 **Recent Updates:**
-- Implemented Celery + Redis async queue system
-- Added CampaignSend model for progress tracking
-- Added email_task.py and sms_task.py background tasks
-- Added rate_limiter.py service
-- Updated campaign_send route for non-blocking sends
-- Added progress API endpoints and UI polling
-- Updated Procfile for Railway worker deployment
-- Successfully deployed to Railway (Jan 2026)
+- **QR Code CID Implementation (Jan 16, 2026):**
+  - Implemented Content-ID (CID) approach for Gmail compatibility
+  - Gmail blocks base64 data URIs; CID inline attachments work correctly
+  - Added regenerate_bytes() and generate_content_id() to qr_generator.py
+  - Added inline_attachments parameter to send_email()
+  - Updated email_task.py to use CID references instead of data URIs
+  - Created crc-EmailService.md design document
+  - QR codes now display correctly in Gmail, Apple Mail, Outlook
+- **Async Queue (Jan 2026):**
+  - Implemented Celery + Redis async queue system
+  - Added CampaignSend model for progress tracking
+  - Added email_task.py and sms_task.py background tasks
+  - Added rate_limiter.py service
+  - Updated campaign_send route for non-blocking sends
+  - Added progress API endpoints and UI polling
+  - Successfully deployed to Railway
 
 ## Railway Deployment Notes
 

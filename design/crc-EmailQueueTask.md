@@ -21,18 +21,21 @@ tags:
 - status: Task status (pending/processing/completed/failed)
 
 ### Does
-- execute(): Send email via SendGrid
-- render_email(campaign, customer, qr_code): Generate personalized HTML
+- send_campaign_email(campaign_id, customer_id, campaign_send_id): Celery task entry point
+- build_template_vars(db, customer, campaign, base_url): Build personalization vars + QR attachment
+  - Returns: `{'vars': template_vars, 'qr_attachment': attachment_data}`
+  - qr_attachment: `{'content_id': str, 'image_bytes': bytes}` for CID embedding
+- update_send_progress(db, campaign_send_id, success, error): Track batch progress
 - handle_success(): Mark task complete, update campaign metrics
 - handle_failure(error): Log error, schedule retry or mark failed
-- should_retry(): Check if retry_count < max_retries
 
 ## Collaborators
-- Campaign: Source content and metrics updates
-- Customer: Email recipient data
-- QRCode: Embed QR image in email
-- EmailService: SendGrid API integration
-- CampaignAnalytics: Update send metrics
+- Campaign: Source content and settings (has_qr_code flag)
+- Customer: Email recipient data and personalization
+- QRCodeGenerator: Generate QR bytes and content IDs for CID attachment
+- EmailService: SendGrid API with inline_attachments support
+- CampaignSend: Progress tracking for batch sends
+- RateLimiter: Email rate limiting (100/min default)
 
 ## Sequences
 - seq-campaign-send.md: Process email queue

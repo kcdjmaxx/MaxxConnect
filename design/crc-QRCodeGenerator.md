@@ -18,11 +18,15 @@ tags:
 
 ### Does
 - generate_token(campaign_id, customer_id): Create unique secure token
-- generate_qr_image(token): Render QR code as image
-- encode_base64(qr_image): Convert image to base64 for email embedding
-- create_qr_code(campaign, customer): Generate and persist QR code entity
-- generate_batch(campaign, customers): Bulk generate QR codes efficiently
-- generate_short_url(token): Create shortened URL for SMS
+- generate_qr_image(url): Render QR code as PNG bytes
+- encode_base64(qr_image): Convert image bytes to base64 string
+- create_qr_code(db, campaign, customer, base_url): Generate and persist QR code entity
+- get_existing_qr_code(db, campaign_id, customer_id): Check if QR already exists
+- regenerate_base64(qr_code, base_url): Regenerate base64 from existing token
+- regenerate_bytes(qr_code, base_url): Regenerate PNG bytes for CID attachment
+- generate_content_id(campaign_id, customer_id): Create unique CID for email reference
+- generate_batch(campaign, customers): Bulk generate QR codes efficiently (planned)
+- generate_short_url(token): Create shortened URL for SMS (planned)
 - calculate_expiration(campaign): Compute expires_at from campaign settings
 
 ## Collaborators

@@ -72,6 +72,23 @@ tags:
 ## Notes
 - Token format: `{campaign_id}-{customer_id}-{16-byte-hex-hash}`
 - Uses `secrets.token_hex(16)` for cryptographic randomness
-- Bulk insert for performance with large campaigns
 - Each customer gets exactly one QR code per campaign
-- Expiration calculated from campaign start + qr_expiration_days
+- Expiration: 30 days from creation (DEFAULT_EXPIRATION_DAYS)
+
+## Current Implementation (Jan 2026)
+QR codes are generated **on-demand during email sends** rather than batch pre-generation:
+
+1. `build_template_vars()` in email_task.py checks campaign.has_qr_code
+2. Calls `get_existing_qr_code()` to check if QR already exists
+3. If not, calls `create_qr_code()` to generate and persist
+4. Returns QR bytes for CID attachment
+
+**Functions in qr_generator.py:**
+- `generate_token(campaign_id, customer_id)` - Create unique token
+- `generate_qr_image(url)` - Render QR as PNG bytes
+- `create_qr_code(db, campaign, customer, base_url)` - Generate and persist
+- `get_existing_qr_code(db, campaign_id, customer_id)` - Check existence
+- `regenerate_bytes(qr_code, base_url)` - Regenerate PNG for existing QR
+- `generate_content_id(campaign_id, customer_id)` - Create CID for email
+
+**Future:** Bulk pre-generation may be added for very large campaigns.
