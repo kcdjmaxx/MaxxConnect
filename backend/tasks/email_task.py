@@ -136,17 +136,16 @@ def send_campaign_email(self, campaign_id, customer_id, campaign_send_id=None):
         base_url = Config.BASE_URL
         template_vars = build_template_vars(db, customer, campaign, base_url)
 
-        # Render template (using Jinja2 directly since no Flask context)
-        # The campaign.html_content contains the raw template
-        # But we need to render from the template file for proper personalization
-        # For now, use Jinja2 Template with the stored html_content
-        template = Template(campaign.html_content)
-        personalized_html = template.render(**template_vars)
-
-        # Replace QR code placeholder with actual data URI if QR code was generated
+        # Replace QR code placeholder BEFORE Jinja2 rendering
+        # (SendGrid strips src attributes with non-URL values like [[...]])
+        html_content = campaign.html_content
         if campaign.has_qr_code and 'qr_code_base64' in template_vars:
             qr_data_uri = f"data:image/png;base64,{template_vars['qr_code_base64']}"
-            personalized_html = personalized_html.replace('[[QR_CODE_DATA_URI]]', qr_data_uri)
+            html_content = html_content.replace('[[QR_CODE_DATA_URI]]', qr_data_uri)
+
+        # Render template (using Jinja2 directly since no Flask context)
+        template = Template(html_content)
+        personalized_html = template.render(**template_vars)
 
         # Send email
         result = send_email(
