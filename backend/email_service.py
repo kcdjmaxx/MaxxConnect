@@ -13,8 +13,19 @@ def send_email(to_email, to_name, subject, html_content):
     - Development: Converted to base64
     - Production: External URLs
     """
+    # Debug: Check QR data URI before processing
+    import re
+    qr_before = re.search(r'<img[^>]*alt="Redemption QR Code"[^>]*>', html_content)
+    if qr_before:
+        print(f"QR DEBUG email_service BEFORE ImageHandler: {qr_before.group(0)[:150]}")
+
     # Process images based on environment
     processed_html = ImageHandler.process_html_images(html_content)
+
+    # Debug: Check QR data URI after processing
+    qr_after = re.search(r'<img[^>]*alt="Redemption QR Code"[^>]*>', processed_html)
+    if qr_after:
+        print(f"QR DEBUG email_service AFTER ImageHandler: {qr_after.group(0)[:150]}")
 
     message = Mail(
         from_email=(Config.SENDER_EMAIL, Config.SENDER_NAME),
