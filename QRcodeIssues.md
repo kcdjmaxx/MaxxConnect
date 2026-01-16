@@ -85,7 +85,7 @@ if has_qr_code:
       <tr>
         <td style="text-align: center; padding: 20px; background-color: #f5f5f5; border-radius: 8px;">
           <p style="margin: 0 0 10px 0; font-weight: bold; color: #d32f2f;">SHOW THIS QR CODE TO REDEEM:</p>
-          <img src="{{QR_CODE_DATA_URI}}" width="200" height="200" alt="Redemption QR Code">
+          <img src="[[QR_CODE_DATA_URI]]" width="200" height="200" alt="Redemption QR Code">
           <p style="margin: 10px 0 0 0; font-size: 11px; color: #888;">One-time use only.</p>
         </td>
       </tr>
@@ -100,7 +100,7 @@ At send time, replace the placeholder with actual QR data:
 ```python
 if campaign.has_qr_code and 'qr_code_base64' in template_vars:
     qr_data_uri = f"data:image/png;base64,{template_vars['qr_code_base64']}"
-    personalized_html = personalized_html.replace('{{QR_CODE_DATA_URI}}', qr_data_uri)
+    personalized_html = personalized_html.replace('[[QR_CODE_DATA_URI]]', qr_data_uri)
 ```
 
 ### Why This Works
@@ -139,14 +139,14 @@ Replace `{% if qr_code_base64 %}...{% endif %}` with `<!-- QR_CODE_SECTION -->`:
 
 ### Email Sending (`backend/tasks/email_task.py`)
 
-- `send_campaign_email()` - Replace `{{QR_CODE_DATA_URI}}` with actual base64 data
+- `send_campaign_email()` - Replace `[[QR_CODE_DATA_URI]]` with actual base64 data
 
 ---
 
 ## Test Plan
 
 1. Create campaign with `has_qr_code=True`
-2. Verify `html_content` contains `{{QR_CODE_DATA_URI}}` placeholder
+2. Verify `html_content` contains `[[QR_CODE_DATA_URI]]` placeholder
 3. Send test email - verify QR code appears in email
 4. Send to real customer - verify unique QR code generated and saved to database
 5. Scan QR code - verify redemption works
@@ -170,14 +170,14 @@ The String Placeholder Approach has been implemented:
 - Files updated: `monday_special.html`, `WelcomeTemplate.html`, `base_email.html`
 
 **2. Campaign Creation** (`app.py:create_campaign()`)
-- After `render_template()`, if `has_qr_code=True`, replaces `<!-- QR_CODE_SECTION -->` with QR HTML block containing `{{QR_CODE_DATA_URI}}`
+- After `render_template()`, if `has_qr_code=True`, replaces `<!-- QR_CODE_SECTION -->` with QR HTML block containing `[[QR_CODE_DATA_URI]]`
 - The placeholder survives Jinja2 rendering since it's not Jinja2 syntax
 
 **3. Campaign Edit** (`app.py:edit_campaign()`)
 - Same logic applied when template is re-rendered due to template change or QR setting change
 
 **4. Email Sending** (`backend/tasks/email_task.py`)
-- After Jinja2 rendering, replaces `{{QR_CODE_DATA_URI}}` with actual `data:image/png;base64,{qr_code_base64}`
+- After Jinja2 rendering, replaces `[[QR_CODE_DATA_URI]]` with actual `data:image/png;base64,{qr_code_base64}`
 - Uses the already-working `build_template_vars()` which generates unique QR codes per customer
 
 **5. Test Email Paths** (app.py)
@@ -186,11 +186,11 @@ The String Placeholder Approach has been implemented:
 
 ### How It Works
 
-1. **Campaign Creation**: Template renders with `<!-- QR_CODE_SECTION -->` comment. If `has_qr_code=True`, this gets replaced with QR HTML containing `{{QR_CODE_DATA_URI}}` literal string.
+1. **Campaign Creation**: Template renders with `<!-- QR_CODE_SECTION -->` comment. If `has_qr_code=True`, this gets replaced with QR HTML containing `[[QR_CODE_DATA_URI]]` literal string.
 
-2. **Database Storage**: `html_content` stores the HTML with `{{QR_CODE_DATA_URI}}` placeholder.
+2. **Database Storage**: `html_content` stores the HTML with `[[QR_CODE_DATA_URI]]` placeholder.
 
-3. **Send Time**: Celery worker generates unique QR code, then does simple string replace: `{{QR_CODE_DATA_URI}}` → `data:image/png;base64,{actual_qr_base64}`
+3. **Send Time**: Celery worker generates unique QR code, then does simple string replace: `[[QR_CODE_DATA_URI]]` → `data:image/png;base64,{actual_qr_base64}`
 
 ### Ready for Testing
 

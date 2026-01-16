@@ -594,7 +594,7 @@ def test_template():
 
     # Replace with dummy QR image for testing
     dummy_qr = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-    html = html.replace('{{QR_CODE_DATA_URI}}', dummy_qr)
+    html = html.replace('[[QR_CODE_DATA_URI]]', dummy_qr)
 
     return html
 
@@ -709,7 +709,7 @@ def campaign_new():
                       <tr>
                         <td style="text-align: center; padding: 20px; background-color: #f5f5f5; border-radius: 8px;">
                           <p style="margin: 0 0 10px 0; font-weight: bold; color: #d32f2f;">SHOW THIS QR CODE TO REDEEM:</p>
-                          <img src="{{QR_CODE_DATA_URI}}" width="200" height="200" alt="Redemption QR Code" style="display: block; margin: 0 auto;">
+                          <img src="[[QR_CODE_DATA_URI]]" width="200" height="200" alt="Redemption QR Code" style="display: block; margin: 0 auto;">
                           <p style="margin: 10px 0 0 0; font-size: 11px; color: #888;">One-time use only.</p>
                         </td>
                       </tr>
@@ -759,7 +759,7 @@ def campaign_new():
                             qr_image = qr_generator.generate_qr_image(test_url)
                             qr_base64 = qr_generator.encode_base64(qr_image)
                             qr_data_uri = f"data:image/png;base64,{qr_base64}"
-                            personalized_html = personalized_html.replace('{{QR_CODE_DATA_URI}}', qr_data_uri)
+                            personalized_html = personalized_html.replace('[[QR_CODE_DATA_URI]]', qr_data_uri)
 
                         # Send test email
                         result = send_email(test_email, 'Test Customer', campaign.subject, personalized_html)
@@ -878,7 +878,7 @@ def campaign_edit(campaign_id):
                       <tr>
                         <td style="text-align: center; padding: 20px; background-color: #f5f5f5; border-radius: 8px;">
                           <p style="margin: 0 0 10px 0; font-weight: bold; color: #d32f2f;">SHOW THIS QR CODE TO REDEEM:</p>
-                          <img src="{{QR_CODE_DATA_URI}}" width="200" height="200" alt="Redemption QR Code" style="display: block; margin: 0 auto;">
+                          <img src="[[QR_CODE_DATA_URI]]" width="200" height="200" alt="Redemption QR Code" style="display: block; margin: 0 auto;">
                           <p style="margin: 10px 0 0 0; font-size: 11px; color: #888;">One-time use only.</p>
                         </td>
                       </tr>
@@ -1065,7 +1065,7 @@ def campaign_send(campaign_id):
                       <tr>
                         <td style="text-align: center; padding: 20px; background-color: #f5f5f5; border-radius: 8px;">
                           <p style="margin: 0 0 10px 0; font-weight: bold; color: #d32f2f;">SHOW THIS QR CODE TO REDEEM:</p>
-                          <img src="{{QR_CODE_DATA_URI}}" width="200" height="200" alt="Redemption QR Code" style="display: block; margin: 0 auto;">
+                          <img src="[[QR_CODE_DATA_URI]]" width="200" height="200" alt="Redemption QR Code" style="display: block; margin: 0 auto;">
                           <p style="margin: 10px 0 0 0; font-size: 11px; color: #888;">One-time use only.</p>
                         </td>
                       </tr>
@@ -1079,7 +1079,7 @@ def campaign_send(campaign_id):
                         qr_image = qr_generator.generate_qr_image(test_url)
                         qr_base64 = qr_generator.encode_base64(qr_image)
                         qr_data_uri = f"data:image/png;base64,{qr_base64}"
-                        personalized_html = personalized_html.replace('{{QR_CODE_DATA_URI}}', qr_data_uri)
+                        personalized_html = personalized_html.replace('[[QR_CODE_DATA_URI]]', qr_data_uri)
 
                     print(f"DEBUG: Template rendered successfully. HTML length: {len(personalized_html)}")
                     print(f"DEBUG: First 200 chars of HTML: {personalized_html[:200]}")

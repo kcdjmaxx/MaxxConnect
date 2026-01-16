@@ -146,7 +146,7 @@ def send_campaign_email(self, campaign_id, customer_id, campaign_send_id=None):
         # Replace QR code placeholder with actual data URI if QR code was generated
         if campaign.has_qr_code and 'qr_code_base64' in template_vars:
             qr_data_uri = f"data:image/png;base64,{template_vars['qr_code_base64']}"
-            personalized_html = personalized_html.replace('{{QR_CODE_DATA_URI}}', qr_data_uri)
+            personalized_html = personalized_html.replace('[[QR_CODE_DATA_URI]]', qr_data_uri)
 
         # Send email
         result = send_email(
