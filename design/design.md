@@ -100,6 +100,11 @@ Email/SMS marketing platform with:
   - [ ] backend/models.py (segment helper methods)
 - crc-QRCode.md
   - [x] backend/models.py (QRCode class)
+- crc-EmailDelivery.md
+  - [x] backend/models.py (EmailDelivery class)
+  - [x] backend/tasks/email_task.py (delivery tracking)
+  - [x] app.py (resume route, delivery stats)
+  - [x] templates/campaign_send_confirm.html (resume UI)
 - crc-QRCodeGenerator.md
   - [x] backend/services/qr_generator.py
 - crc-EmailService.md
@@ -202,6 +207,23 @@ Email/SMS marketing platform with:
 - Test Designs: 6 (complete)
 
 **Recent Updates:**
+- **Campaign Resume & Delivery Tracking (Jan 16, 2026):**
+  - Added `EmailDelivery` model to track individual customer/campaign sends
+  - New `/campaign/resume/<id>` route sends only to unsent customers
+  - UI shows delivery stats (Sent/Failed/Remaining) with resume button
+  - Prevents duplicate sends when resuming interrupted campaigns
+- **Customer Name Personalization Fix (Jan 16, 2026):**
+  - Changed from `{{ customer_name }}` (evaluated at creation) to `[[CUSTOMER_NAME]]` placeholder
+  - Placeholder survives Jinja2 rendering, replaced at send time with actual name
+  - Updated all email templates and send paths
+- **Privacy Policy & Compliance (Jan 16, 2026):**
+  - Added privacy policy link to WelcomeTemplate footer
+  - Link: https://fricandfrac.net/privacy/
+  - Required for SendGrid upgrade approval
+- **SendGrid Upgrade Pending:**
+  - Trial limit: 100 emails/day (hit during first campaign)
+  - Upgrade ticket: #24741818
+  - Status: Awaiting regulatory approval
 - **QR Code CID Implementation (Jan 16, 2026):**
   - Implemented Content-ID (CID) approach for Gmail compatibility
   - Gmail blocks base64 data URIs; CID inline attachments work correctly

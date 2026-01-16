@@ -325,3 +325,25 @@ The HTML code would look like this: `<img src="cid:0123456789">`where the `cid
        Disposition('inline'),  # Key: inline, not attachment
        ContentId(content_id)
    )
+   ```
+
+---
+
+## SendGrid Upgrade Status (Jan 16, 2026)
+
+### Issue
+First production campaign hit SendGrid's free trial limit of **100 emails/day**. Campaign had 1400+ subscribers.
+
+### Resolution
+- Submitted SendGrid upgrade request to Essentials plan (50,000 emails/month)
+- **Ticket Number:** #24741818
+- **Status:** Awaiting regulatory approval
+- Added privacy policy link to email templates (required for approval)
+- Added campaign resume feature to continue sending once approved
+
+### Campaign Resume Feature
+Added ability to resume interrupted campaigns:
+- New `email_deliveries` table tracks individual send status
+- `/campaign/resume/<id>` route sends only to customers without successful delivery
+- UI shows delivery stats (Sent/Failed/Remaining) and "Resume Campaign" button
+- Prevents duplicate sends when resuming after interruption

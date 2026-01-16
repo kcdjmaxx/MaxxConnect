@@ -11,25 +11,31 @@ tags:
 
 # Phase 1 Completion Checklist (Railway Deployment)
 
-## 🎯 CURRENT STATUS (Last Updated: Dec 21, 2024)
+## 🎯 CURRENT STATUS (Last Updated: Jan 16, 2026)
 
 ✅ **Phase 1 - COMPLETE!**
-- Email (SendGrid) fully configured and tested ✓
-- SMS (Twilio) fully configured and tested ✓
-- Database schema with encryption ✓
-- Campaign management system COMPLETE ✓
-  - Create, Read, Update, Delete campaigns ✓
-  - Template selection system ✓
-  - Send confirmation with audience targeting ✓
-  - Test mode functionality ✓
-  - Image handling (dev/prod) ✓
+✅ **Phase 2 - QR Codes & Async Queue COMPLETE!**
 
-📋 **Ready for Railway Deployment:**
-1. Campaign system tested locally
-2. All CRUD operations working
-3. Test mode verified
-4. Image handling confirmed
-5. Ready to deploy to production
+### Production Status
+- **Railway Deployment:** Live at maxxconnect.up.railway.app
+- **SendGrid:** ⏳ AWAITING REGULATORY APPROVAL (Ticket #24741818)
+  - Free trial hit 100 email/day limit during first campaign
+  - Upgrade submitted, requires regulatory approval
+  - Privacy policy added to email templates
+- **Twilio SMS:** ⏳ Awaiting A2P 10DLC approval
+
+### Recently Completed (Jan 2026)
+- ✅ QR Code CID implementation (Gmail-compatible)
+- ✅ Async email queue with Celery + Redis
+- ✅ Campaign resume feature (send to unsent recipients only)
+- ✅ Customer name personalization (`[[CUSTOMER_NAME]]` placeholder)
+- ✅ Email delivery tracking (`email_deliveries` table)
+- ✅ Privacy policy link added to email templates
+- ✅ Progress tracking UI with live polling
+
+### Blocking Issues
+1. **SendGrid limit:** Trial allows only 100 emails/day. Upgrade pending regulatory approval.
+2. **A2P 10DLC:** SMS blocked until Twilio approves campaign registration.
 
 ---
 
@@ -72,18 +78,18 @@ tags:
 - [x] Flask app tested locally (fixed database schema issue)
 
 ### 4. Railway Project Setup - NOT STARTED
-- [ ] Sign up for Railway account at https://railway.app
-- [ ] Create new project
-- [ ] Connect your GitHub repository (or create one)
-- [ ] Railway will auto-detect Flask app
+- [x] Sign up for Railway account at https://railway.app
+- [x] Create new project
+- [x] Connect your GitHub repository (or create one)
+- [x] Railway will auto-detect Flask app
 
 ### 5. Configure Railway Environment Variables - NOT STARTED
-- [ ] Go to Railway project → Variables tab
-- [ ] Add the following environment variables:
-  - [ ] `SENDGRID_API_KEY` = your SendGrid API key
-  - [ ] `SENDGRID_FROM_EMAIL` = your-verified-email@domain.com
-  - [ ] `TWILIO_ACCOUNT_SID` = your Twilio Account SID
-  - [ ] `TWILIO_AUTH_TOKEN` = your Twilio Auth Token
+- [x] Go to Railway project → Variables tab
+- [x] Add the following environment variables:
+  - [x] `SENDGRID_API_KEY` = your SendGrid API key
+  - [x] `SENDGRID_FROM_EMAIL` = your-verified-email@domain.com
+  - [x] `TWILIO_ACCOUNT_SID` = your Twilio Account SID
+  - [x] `TWILIO_AUTH_TOKEN` = your Twilio Auth Token
   - [ ] `TWILIO_PHONE_NUMBER` = +1234567890
   - [ ] `BUSINESS_NAME` = Your Business Name
   - [ ] `BUSINESS_ADDRESS` = 123 Main St, City, State 12345
