@@ -745,13 +745,9 @@ def campaign_new():
                             'unsubscribe_link': '#test-unsubscribe'
                         }
 
-                        personalized_html = render_template_string(
-                            campaign.html_content,
-                            **template_vars
-                        )
-
                         # Generate real QR code for test if campaign has it enabled
-                        # Replace the {{QR_CODE_DATA_URI}} placeholder with actual QR data
+                        # Replace placeholder BEFORE Jinja2 rendering (SendGrid strips invalid src values)
+                        html_to_render = campaign.html_content
                         if campaign.has_qr_code:
                             from backend.config import Config
                             test_token = f"TEST-{campaign.id}-preview"
@@ -759,7 +755,12 @@ def campaign_new():
                             qr_image = qr_generator.generate_qr_image(test_url)
                             qr_base64 = qr_generator.encode_base64(qr_image)
                             qr_data_uri = f"data:image/png;base64,{qr_base64}"
-                            personalized_html = personalized_html.replace('[[QR_CODE_DATA_URI]]', qr_data_uri)
+                            html_to_render = html_to_render.replace('[[QR_CODE_DATA_URI]]', qr_data_uri)
+
+                        personalized_html = render_template_string(
+                            html_to_render,
+                            **template_vars
+                        )
 
                         # Send test email
                         result = send_email(test_email, 'Test Customer', campaign.subject, personalized_html)
