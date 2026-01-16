@@ -151,6 +151,16 @@ def send_campaign_email(self, campaign_id, customer_id, campaign_send_id=None):
         template = Template(html_content)
         personalized_html = template.render(**template_vars)
 
+        # Debug: Check if data URI survived Jinja2 rendering
+        has_data_uri = 'data:image/png;base64,' in personalized_html
+        logger.info(f"QR DEBUG: After Jinja2 render, has data:image/png: {has_data_uri}")
+        if campaign.has_qr_code:
+            # Find the img tag to see what's there
+            import re
+            img_match = re.search(r'<img[^>]*alt="Redemption QR Code"[^>]*>', personalized_html)
+            if img_match:
+                logger.info(f"QR DEBUG: QR img tag after render: {img_match.group(0)[:200]}")
+
         # Send email
         result = send_email(
             customer.email,
