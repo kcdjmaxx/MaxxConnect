@@ -29,6 +29,9 @@ def build_template_vars(db, customer, campaign, base_url):
     Build template variables for email personalization
 
     Extracted from app.py lines 978-997 for reuse in async task
+
+    Returns:
+        dict with 'vars' (template variables) and 'qr_attachment' (optional CID attachment data)
     """
     # Extract first name for friendlier greeting
     first_name = customer.name.split()[0] if customer.name else 'Valued Customer'
@@ -50,24 +53,38 @@ def build_template_vars(db, customer, campaign, base_url):
         template_vars['logo_url'] = f"{static_url}/images/FNFWebLogo200x50.png"
         template_vars['hero_image_url'] = f"{static_url}/images/FNFFront600x300.png"
 
+    # QR code attachment data (for CID approach)
+    qr_attachment = None
+
     # QR code if campaign has it enabled
     if campaign.has_qr_code:
         try:
             # Check if QR code already exists for this customer/campaign
             existing_qr = qr_generator.get_existing_qr_code(db, campaign.id, customer.id)
             if existing_qr:
-                # Regenerate image from existing token
-                template_vars['qr_code_base64'] = qr_generator.regenerate_base64(existing_qr, base_url)
+                # Regenerate image bytes from existing token
+                qr_bytes = qr_generator.regenerate_bytes(existing_qr, base_url)
                 logger.info(f"Reused existing QR code for customer {customer.id}")
             else:
                 # Generate new QR code
                 result = qr_generator.create_qr_code(db, campaign, customer, base_url)
-                template_vars['qr_code_base64'] = result['base64']
+                # Get bytes from the token we just created
+                qr_bytes = qr_generator.generate_qr_image(f"{base_url}/redeem/{result['qr_code'].token}")
+
+            # Create CID attachment data
+            content_id = qr_generator.generate_content_id(campaign.id, customer.id)
+            qr_attachment = {
+                'content_id': content_id,
+                'image_bytes': qr_bytes
+            }
+            # Store content_id in template_vars for HTML replacement
+            template_vars['qr_content_id'] = content_id
+
         except Exception as e:
             logger.error(f"Failed to generate QR code for customer {customer.id}: {e}")
             # Continue without QR code rather than failing the email
 
-    return template_vars
+    return {'vars': template_vars, 'qr_attachment': qr_attachment}
 
 
 def update_send_progress(db, campaign_send_id, success, error=None):
@@ -134,26 +151,31 @@ def send_campaign_email(self, campaign_id, customer_id, campaign_send_id=None):
 
         # Build template variables (including QR code generation if enabled)
         base_url = Config.BASE_URL
-        template_vars = build_template_vars(db, customer, campaign, base_url)
+        build_result = build_template_vars(db, customer, campaign, base_url)
+        template_vars = build_result['vars']
+        qr_attachment = build_result['qr_attachment']
 
-        # Replace QR code placeholder BEFORE Jinja2 rendering
-        # (SendGrid strips src attributes with non-URL values like [[...]])
+        # Replace QR code placeholder with CID reference BEFORE Jinja2 rendering
         html_content = campaign.html_content
-        logger.info(f"QR DEBUG: has_qr_code={campaign.has_qr_code}, qr_base64_in_vars={'qr_code_base64' in template_vars}")
-        if campaign.has_qr_code and 'qr_code_base64' in template_vars:
-            qr_data_uri = f"data:image/png;base64,{template_vars['qr_code_base64'][:50]}..."
-            logger.info(f"QR DEBUG: Replacing [[QR_CODE_DATA_URI]] with data URI")
+        inline_attachments = []
+
+        logger.info(f"QR DEBUG: has_qr_code={campaign.has_qr_code}, qr_attachment={qr_attachment is not None}")
+        if campaign.has_qr_code and qr_attachment:
+            content_id = qr_attachment['content_id']
+            cid_reference = f"cid:{content_id}"
+            logger.info(f"QR DEBUG: Replacing [[QR_CODE_DATA_URI]] with {cid_reference}")
             placeholder_found = '[[QR_CODE_DATA_URI]]' in html_content
             logger.info(f"QR DEBUG: Placeholder found in html_content: {placeholder_found}")
-            html_content = html_content.replace('[[QR_CODE_DATA_URI]]', f"data:image/png;base64,{template_vars['qr_code_base64']}")
+            html_content = html_content.replace('[[QR_CODE_DATA_URI]]', cid_reference)
+            inline_attachments.append(qr_attachment)
 
         # Render template (using Jinja2 directly since no Flask context)
         template = Template(html_content)
         personalized_html = template.render(**template_vars)
 
-        # Debug: Check if data URI survived Jinja2 rendering
-        has_data_uri = 'data:image/png;base64,' in personalized_html
-        logger.info(f"QR DEBUG: After Jinja2 render, has data:image/png: {has_data_uri}")
+        # Debug: Check if CID reference survived Jinja2 rendering
+        has_cid = 'cid:qr-' in personalized_html
+        logger.info(f"QR DEBUG: After Jinja2 render, has cid:qr-: {has_cid}")
         if campaign.has_qr_code:
             # Find the img tag to see what's there
             import re
@@ -161,12 +183,13 @@ def send_campaign_email(self, campaign_id, customer_id, campaign_send_id=None):
             if img_match:
                 logger.info(f"QR DEBUG: QR img tag after render: {img_match.group(0)[:200]}")
 
-        # Send email
+        # Send email with CID attachments
         result = send_email(
             customer.email,
             customer.name or 'Valued Customer',
             campaign.subject,
-            personalized_html
+            personalized_html,
+            inline_attachments=inline_attachments if inline_attachments else None
         )
 
         if result.get('success'):

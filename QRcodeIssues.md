@@ -252,4 +252,76 @@ Use an external QR code generation service instead of base64 embedding.
 
 Only the **image delivery method** changes from embedded base64 to external URL.
 
-### Status: PENDING IMPLEMENTATION
+## Potential Solution 
+
+To display images reliably within Gmail and other email clients, the standard and most compatible method is to send the image as an **attachment** and reference it in the HTML body using a **Content-ID (CID)**. 
+
+The HTML code would look like this: `<img src="cid:0123456789">`where the `cid` value corresponds to an attachment header in the email's MIME data. This approach ensures the image is embedded within the message data without relying on the less-supported data URI scheme for inline display
+
+### Status: IMPLEMENTED ✓
+
+---
+
+## CID Implementation Details (2026-01-16)
+
+### Why CID Instead of External QR Hosting
+
+| Factor | External QR Hosting | Content-ID (CID) |
+|--------|---------------------|------------------|
+| **Reliability** | ❌ Depends on third-party service | ✅ Self-contained in email |
+| **Privacy** | ❌ QR Server sees all redemption URLs | ✅ Data stays within email |
+| **Gmail Support** | ✅ Works | ✅ Works (industry standard) |
+| **Offline** | ❌ Requires internet to display | ✅ Works offline |
+
+### Files Modified
+
+1. **`backend/services/qr_generator.py`**
+   - Added `regenerate_bytes()` - Returns QR image as PNG bytes for CID attachment
+   - Added `generate_content_id()` - Creates unique CID: `qr-{campaign_id}-{customer_id}`
+
+2. **`backend/email_service.py`**
+   - Added `inline_attachments` parameter to `send_email()`
+   - Creates SendGrid `Attachment` with `Disposition('inline')` and `ContentId`
+   - Uses base64 encoding for SendGrid API
+
+3. **`backend/tasks/email_task.py`**
+   - `build_template_vars()` now returns `{'vars': template_vars, 'qr_attachment': attachment_data}`
+   - `send_campaign_email()` replaces `[[QR_CODE_DATA_URI]]` with `cid:{content_id}`
+   - Passes QR bytes as inline attachment to `send_email()`
+
+4. **`app.py`** (test email paths)
+   - Campaign creation test send: Uses CID
+   - Campaign send confirmation test: Uses CID
+   - `/test-template` route: Unchanged (browser preview, not email)
+
+### How It Works
+
+1. **Campaign stored**: HTML contains `[[QR_CODE_DATA_URI]]` placeholder
+
+2. **At send time**:
+   ```python
+   # Generate unique CID
+   content_id = f"qr-{campaign_id}-{customer_id}"
+
+   # Replace placeholder with CID reference
+   html = html.replace('[[QR_CODE_DATA_URI]]', f'cid:{content_id}')
+
+   # Generate QR bytes
+   qr_bytes = qr_generator.generate_qr_image(redemption_url)
+
+   # Send with inline attachment
+   send_email(to, name, subject, html, inline_attachments=[{
+       'content_id': content_id,
+       'image_bytes': qr_bytes
+   }])
+   ```
+
+3. **SendGrid attachment**:
+   ```python
+   Attachment(
+       FileContent(base64_encoded_bytes),
+       FileName(f'{content_id}.png'),
+       FileType('image/png'),
+       Disposition('inline'),  # Key: inline, not attachment
+       ContentId(content_id)
+   )

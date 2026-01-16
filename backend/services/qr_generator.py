@@ -137,3 +137,22 @@ def regenerate_base64(qr_code, base_url):
     redemption_url = f"{base_url}/redeem/{qr_code.token}"
     image_bytes = generate_qr_image(redemption_url)
     return encode_base64(image_bytes)
+
+
+def regenerate_bytes(qr_code, base_url):
+    """
+    Regenerate QR image as PNG bytes for existing QR code
+
+    Used for CID email attachments (Gmail-compatible)
+    """
+    redemption_url = f"{base_url}/redeem/{qr_code.token}"
+    return generate_qr_image(redemption_url)
+
+
+def generate_content_id(campaign_id, customer_id):
+    """
+    Generate a unique Content-ID for email CID references
+
+    Format: qr-{campaign_id}-{customer_id}
+    """
+    return f"qr-{campaign_id}-{customer_id}"

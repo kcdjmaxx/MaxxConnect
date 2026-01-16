@@ -746,24 +746,31 @@ def campaign_new():
                         }
 
                         # Generate real QR code for test if campaign has it enabled
-                        # Replace placeholder BEFORE Jinja2 rendering (SendGrid strips invalid src values)
+                        # Use CID approach for Gmail compatibility
                         html_to_render = campaign.html_content
+                        inline_attachments = []
                         if campaign.has_qr_code:
                             from backend.config import Config
                             test_token = f"TEST-{campaign.id}-preview"
                             test_url = f"{Config.BASE_URL}/redeem/{test_token}"
-                            qr_image = qr_generator.generate_qr_image(test_url)
-                            qr_base64 = qr_generator.encode_base64(qr_image)
-                            qr_data_uri = f"data:image/png;base64,{qr_base64}"
-                            html_to_render = html_to_render.replace('[[QR_CODE_DATA_URI]]', qr_data_uri)
+                            qr_image_bytes = qr_generator.generate_qr_image(test_url)
+                            content_id = f"qr-test-{campaign.id}"
+                            html_to_render = html_to_render.replace('[[QR_CODE_DATA_URI]]', f'cid:{content_id}')
+                            inline_attachments.append({
+                                'content_id': content_id,
+                                'image_bytes': qr_image_bytes
+                            })
 
                         personalized_html = render_template_string(
                             html_to_render,
                             **template_vars
                         )
 
-                        # Send test email
-                        result = send_email(test_email, 'Test Customer', campaign.subject, personalized_html)
+                        # Send test email with CID attachment
+                        result = send_email(
+                            test_email, 'Test Customer', campaign.subject, personalized_html,
+                            inline_attachments=inline_attachments if inline_attachments else None
+                        )
 
                         if result.get('success'):
                             flash(f'✓ Test email sent successfully to {test_email}! (Status: {result.get("status_code", "N/A")})', 'success')
@@ -1059,14 +1066,17 @@ def campaign_send(campaign_id):
                         **template_vars
                     )
 
-                    # If QR codes enabled, inject QR placeholder HTML and generate actual QR
+                    # If QR codes enabled, inject QR placeholder HTML with CID reference
+                    inline_attachments = []
                     if campaign.has_qr_code:
-                        qr_placeholder_html = '''
+                        # Generate CID for this test email
+                        content_id = f"qr-test-{campaign.id}-{test_customer.id if test_customer else 'preview'}"
+                        qr_placeholder_html = f'''
                     <table cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 20px auto;">
                       <tr>
                         <td style="text-align: center; padding: 20px; background-color: #f5f5f5; border-radius: 8px;">
                           <p style="margin: 0 0 10px 0; font-weight: bold; color: #d32f2f;">SHOW THIS QR CODE TO REDEEM:</p>
-                          <img src="[[QR_CODE_DATA_URI]]" width="200" height="200" alt="Redemption QR Code" style="display: block; margin: 0 auto;">
+                          <img src="cid:{content_id}" width="200" height="200" alt="Redemption QR Code" style="display: block; margin: 0 auto;">
                           <p style="margin: 10px 0 0 0; font-size: 11px; color: #888;">One-time use only.</p>
                         </td>
                       </tr>
@@ -1074,13 +1084,14 @@ def campaign_send(campaign_id):
                     '''
                         personalized_html = personalized_html.replace('<!-- QR_CODE_SECTION -->', qr_placeholder_html)
 
-                        # Generate real QR code for test
+                        # Generate real QR code bytes for CID attachment
                         test_token = f"TEST-{campaign.id}-{test_customer.id if test_customer else 'preview'}"
                         test_url = f"{Config.BASE_URL}/redeem/{test_token}"
-                        qr_image = qr_generator.generate_qr_image(test_url)
-                        qr_base64 = qr_generator.encode_base64(qr_image)
-                        qr_data_uri = f"data:image/png;base64,{qr_base64}"
-                        personalized_html = personalized_html.replace('[[QR_CODE_DATA_URI]]', qr_data_uri)
+                        qr_image_bytes = qr_generator.generate_qr_image(test_url)
+                        inline_attachments.append({
+                            'content_id': content_id,
+                            'image_bytes': qr_image_bytes
+                        })
 
                     print(f"DEBUG: Template rendered successfully. HTML length: {len(personalized_html)}")
                     print(f"DEBUG: First 200 chars of HTML: {personalized_html[:200]}")
@@ -1090,9 +1101,12 @@ def campaign_send(campaign_id):
                     traceback.print_exc()
                     raise
 
-                # Send test email
+                # Send test email with CID attachment
                 print("DEBUG: About to send email...")
-                result = send_email(test_email, 'Test Customer', campaign.subject, personalized_html)
+                result = send_email(
+                    test_email, 'Test Customer', campaign.subject, personalized_html,
+                    inline_attachments=inline_attachments if inline_attachments else None
+                )
                 print(f"DEBUG: Send result: {result}")
 
                 if result.get('success'):
