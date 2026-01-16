@@ -570,13 +570,33 @@ def sms_optout():
 @app.route('/test-template')
 @auth.login_required
 def test_template():
-    """Test the Monday special email template"""
-    return render_template('email/monday_special.html',
+    """Test the Monday special email template with QR code placeholder approach"""
+    # Render base template
+    html = render_template('email/monday_special.html',
                           customer_name='Test Customer',
                           logo_url='/static/images/FNFWebLogo200x50.png',
                           hero_image_url='/static/images/FNFFront600x300.png',
-                          qr_code_base64='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
                           unsubscribe_link='/unsubscribe?token=test123')
+
+    # Inject QR placeholder HTML
+    qr_placeholder_html = '''
+    <table cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 20px auto;">
+      <tr>
+        <td style="text-align: center; padding: 20px; background-color: #f5f5f5; border-radius: 8px;">
+          <p style="margin: 0 0 10px 0; font-weight: bold; color: #d32f2f;">SHOW THIS QR CODE TO REDEEM:</p>
+          <img src="{{QR_CODE_DATA_URI}}" width="200" height="200" alt="Redemption QR Code" style="display: block; margin: 0 auto;">
+          <p style="margin: 10px 0 0 0; font-size: 11px; color: #888;">One-time use only.</p>
+        </td>
+      </tr>
+    </table>
+    '''
+    html = html.replace('<!-- QR_CODE_SECTION -->', qr_placeholder_html)
+
+    # Replace with dummy QR image for testing
+    dummy_qr = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+    html = html.replace('{{QR_CODE_DATA_URI}}', dummy_qr)
+
+    return html
 
 def get_available_templates():
     """
@@ -679,12 +699,23 @@ def campaign_new():
                     template_vars['logo_url'] = url_for('static', filename='images/FNFWebLogo200x50.png', _external=True)
                     template_vars['hero_image_url'] = url_for('static', filename='images/FNFFront600x300.png', _external=True)
 
-                # Only include QR code if checkbox is checked
+                html_content = render_template(template, **template_vars)
+
+                # If QR codes enabled, inject QR placeholder HTML
                 has_qr_code = request.form.get('has_qr_code') == 'on'
                 if has_qr_code:
-                    template_vars['qr_code_base64'] = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-
-                html_content = render_template(template, **template_vars)
+                    qr_placeholder_html = '''
+                    <table cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 20px auto;">
+                      <tr>
+                        <td style="text-align: center; padding: 20px; background-color: #f5f5f5; border-radius: 8px;">
+                          <p style="margin: 0 0 10px 0; font-weight: bold; color: #d32f2f;">SHOW THIS QR CODE TO REDEEM:</p>
+                          <img src="{{QR_CODE_DATA_URI}}" width="200" height="200" alt="Redemption QR Code" style="display: block; margin: 0 auto;">
+                          <p style="margin: 10px 0 0 0; font-size: 11px; color: #888;">One-time use only.</p>
+                        </td>
+                      </tr>
+                    </table>
+                    '''
+                    html_content = html_content.replace('<!-- QR_CODE_SECTION -->', qr_placeholder_html)
             except Exception as e:
                 flash(f'Error rendering template: {str(e)}', 'error')
                 return redirect('/campaign/new')
@@ -714,18 +745,21 @@ def campaign_new():
                             'unsubscribe_link': '#test-unsubscribe'
                         }
 
+                        personalized_html = render_template_string(
+                            campaign.html_content,
+                            **template_vars
+                        )
+
                         # Generate real QR code for test if campaign has it enabled
+                        # Replace the {{QR_CODE_DATA_URI}} placeholder with actual QR data
                         if campaign.has_qr_code:
                             from backend.config import Config
                             test_token = f"TEST-{campaign.id}-preview"
                             test_url = f"{Config.BASE_URL}/redeem/{test_token}"
                             qr_image = qr_generator.generate_qr_image(test_url)
-                            template_vars['qr_code_base64'] = qr_generator.encode_base64(qr_image)
-
-                        personalized_html = render_template_string(
-                            campaign.html_content,
-                            **template_vars
-                        )
+                            qr_base64 = qr_generator.encode_base64(qr_image)
+                            qr_data_uri = f"data:image/png;base64,{qr_base64}"
+                            personalized_html = personalized_html.replace('{{QR_CODE_DATA_URI}}', qr_data_uri)
 
                         # Send test email
                         result = send_email(test_email, 'Test Customer', campaign.subject, personalized_html)
@@ -833,13 +867,25 @@ def campaign_edit(campaign_id):
                         template_vars['logo_url'] = url_for('static', filename='images/FNFWebLogo200x50.png', _external=True)
                         template_vars['hero_image_url'] = url_for('static', filename='images/FNFFront600x300.png', _external=True)
 
-                    # Only include QR code if campaign has it enabled (use updated value)
-                    if new_has_qr_code:
-                        template_vars['qr_code_base64'] = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-
                     # Use new template if changed, otherwise use existing
                     template_to_render = template if template != campaign.template_name else campaign.template_name
                     html_content = render_template(template_to_render, **template_vars)
+
+                    # If QR codes enabled, inject QR placeholder HTML
+                    if new_has_qr_code:
+                        qr_placeholder_html = '''
+                    <table cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 20px auto;">
+                      <tr>
+                        <td style="text-align: center; padding: 20px; background-color: #f5f5f5; border-radius: 8px;">
+                          <p style="margin: 0 0 10px 0; font-weight: bold; color: #d32f2f;">SHOW THIS QR CODE TO REDEEM:</p>
+                          <img src="{{QR_CODE_DATA_URI}}" width="200" height="200" alt="Redemption QR Code" style="display: block; margin: 0 auto;">
+                          <p style="margin: 10px 0 0 0; font-size: 11px; color: #888;">One-time use only.</p>
+                        </td>
+                      </tr>
+                    </table>
+                    '''
+                        html_content = html_content.replace('<!-- QR_CODE_SECTION -->', qr_placeholder_html)
+
                     campaign.html_content = html_content
                     campaign.template_name = template_to_render
                 except Exception as e:
@@ -1002,13 +1048,6 @@ def campaign_send(campaign_id):
                     print(f"DEBUG: logo_url = {template_vars['logo_url']}")
                     print(f"DEBUG: hero_image_url = {template_vars['hero_image_url']}")
 
-                # Generate real QR code for test if campaign has it enabled
-                if campaign.has_qr_code:
-                    test_token = f"TEST-{campaign.id}-{test_customer.id if test_customer else 'preview'}"
-                    test_url = f"{Config.BASE_URL}/redeem/{test_token}"
-                    qr_image = qr_generator.generate_qr_image(test_url)
-                    template_vars['qr_code_base64'] = qr_generator.encode_base64(qr_image)
-
                 print(f"DEBUG: Template vars keys: {list(template_vars.keys())}")
 
                 # Render fresh from template file with all variables
@@ -1018,6 +1057,30 @@ def campaign_send(campaign_id):
                         campaign.template_name,
                         **template_vars
                     )
+
+                    # If QR codes enabled, inject QR placeholder HTML and generate actual QR
+                    if campaign.has_qr_code:
+                        qr_placeholder_html = '''
+                    <table cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 20px auto;">
+                      <tr>
+                        <td style="text-align: center; padding: 20px; background-color: #f5f5f5; border-radius: 8px;">
+                          <p style="margin: 0 0 10px 0; font-weight: bold; color: #d32f2f;">SHOW THIS QR CODE TO REDEEM:</p>
+                          <img src="{{QR_CODE_DATA_URI}}" width="200" height="200" alt="Redemption QR Code" style="display: block; margin: 0 auto;">
+                          <p style="margin: 10px 0 0 0; font-size: 11px; color: #888;">One-time use only.</p>
+                        </td>
+                      </tr>
+                    </table>
+                    '''
+                        personalized_html = personalized_html.replace('<!-- QR_CODE_SECTION -->', qr_placeholder_html)
+
+                        # Generate real QR code for test
+                        test_token = f"TEST-{campaign.id}-{test_customer.id if test_customer else 'preview'}"
+                        test_url = f"{Config.BASE_URL}/redeem/{test_token}"
+                        qr_image = qr_generator.generate_qr_image(test_url)
+                        qr_base64 = qr_generator.encode_base64(qr_image)
+                        qr_data_uri = f"data:image/png;base64,{qr_base64}"
+                        personalized_html = personalized_html.replace('{{QR_CODE_DATA_URI}}', qr_data_uri)
+
                     print(f"DEBUG: Template rendered successfully. HTML length: {len(personalized_html)}")
                     print(f"DEBUG: First 200 chars of HTML: {personalized_html[:200]}")
                 except Exception as render_error:
