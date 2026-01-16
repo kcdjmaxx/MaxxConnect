@@ -195,3 +195,61 @@ The String Placeholder Approach has been implemented:
 ### Ready for Testing
 
 Use the Test Plan above to verify the implementation works end-to-end.
+
+---
+
+## Gmail Compatibility Issue (Discovered 2026-01-16)
+
+### Problem
+
+Base64 data URI images (`data:image/png;base64,...`) are **blocked by Gmail** (web and mobile app) for security reasons. QR codes display correctly in Apple Mail but are stripped in Gmail.
+
+### Debug Confirmation
+
+Worker logs confirmed the QR code is correctly generated and embedded:
+```
+QR DEBUG: has_qr_code=True, qr_base64_in_vars=True
+QR DEBUG: Placeholder found in html_content: True
+QR DEBUG: After Jinja2 render, has data:image/png: True
+QR DEBUG: QR img tag after render: <img src="data:image/png;base64,iVBORw0KGgo...
+```
+
+The HTML is correct when sent to SendGrid. Gmail strips the data URI on the receiving end.
+
+### Solution: External QR Code Hosting
+
+Use an external QR code generation service instead of base64 embedding.
+
+**Recommended: QR Server API** (https://api.qrserver.com)
+- Free, no account needed
+- No API key required
+- Just construct URL: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=REDEMPTION_URL`
+
+### Implementation Plan
+
+1. **Modify `qr_generator.py`:**
+   - Add function to generate QR Server API URL instead of base64
+   - Keep existing token generation and database storage (unchanged)
+
+2. **Modify `email_task.py`:**
+   - Replace `[[QR_CODE_DATA_URI]]` with external URL instead of base64 data URI
+
+3. **Example output:**
+   ```html
+   <!-- Instead of -->
+   <img src="data:image/png;base64,iVBORw0KGgo...">
+
+   <!-- Use -->
+   <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://maxxconnect.up.railway.app/redeem/29-1-abc123">
+   ```
+
+### What Stays The Same
+
+- Token generation and uniqueness
+- Database storage (`qr_codes` table)
+- Redemption endpoint (`/redeem/{token}`)
+- All tracking and validation logic
+
+Only the **image delivery method** changes from embedded base64 to external URL.
+
+### Status: PENDING IMPLEMENTATION
