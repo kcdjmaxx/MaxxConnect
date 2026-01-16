@@ -6,7 +6,8 @@ Seq: seq-email-process.md, seq-email-retry.md
 """
 from backend.tasks.celery_app import celery_app
 from backend.database import SessionLocal
-from backend.models import Customer, Campaign, CampaignSend
+from backend.models import Customer, Campaign, CampaignSend, EmailDelivery
+from datetime import datetime
 from backend.email_service import send_email
 from backend.services.rate_limiter import RateLimiter
 from backend.services import qr_generator
@@ -102,6 +103,40 @@ def update_send_progress(db, campaign_send_id, success, error=None):
         db.rollback()
 
 
+def get_or_create_delivery(db, campaign_id, customer_id, campaign_send_id=None):
+    """Get existing delivery record or create new one"""
+    delivery = db.query(EmailDelivery).filter_by(
+        campaign_id=campaign_id,
+        customer_id=customer_id
+    ).first()
+
+    if not delivery:
+        delivery = EmailDelivery(
+            campaign_id=campaign_id,
+            customer_id=customer_id,
+            campaign_send_id=campaign_send_id,
+            status='queued'
+        )
+        db.add(delivery)
+        db.commit()
+
+    return delivery
+
+
+def update_delivery_status(db, delivery, status, error_message=None):
+    """Update delivery record status"""
+    try:
+        delivery.status = status
+        if status == 'sent':
+            delivery.sent_at = datetime.utcnow()
+        if error_message:
+            delivery.error_message = error_message
+        db.commit()
+    except Exception as e:
+        logger.error(f"Failed to update delivery status: {e}")
+        db.rollback()
+
+
 @celery_app.task(
     bind=True,
     max_retries=3,
@@ -148,6 +183,14 @@ def send_campaign_email(self, campaign_id, customer_id, campaign_send_id=None):
             if campaign_send_id:
                 update_send_progress(db, campaign_send_id, success=False, error='Unsubscribed')
             return {'success': False, 'error': 'Customer unsubscribed', 'skipped': True}
+
+        # Get or create delivery tracking record
+        delivery = get_or_create_delivery(db, campaign_id, customer_id, campaign_send_id)
+
+        # Check if already successfully sent (for resume scenarios)
+        if delivery.status == 'sent':
+            logger.info(f"Email already sent to customer {customer_id} for campaign {campaign_id}, skipping")
+            return {'success': True, 'skipped': True, 'reason': 'already_sent'}
 
         # Build template variables (including QR code generation if enabled)
         base_url = Config.BASE_URL
@@ -201,6 +244,9 @@ def send_campaign_email(self, campaign_id, customer_id, campaign_send_id=None):
             # Increment rate counter
             rate_limiter.increment_email_count(campaign_id)
 
+            # Mark delivery as sent
+            update_delivery_status(db, delivery, 'sent')
+
             # Update progress tracking
             if campaign_send_id:
                 update_send_progress(db, campaign_send_id, success=True)
@@ -213,6 +259,7 @@ def send_campaign_email(self, campaign_id, customer_id, campaign_send_id=None):
 
             # Check if this is a permanent failure (bad email, etc)
             if 'invalid' in error_msg.lower() or 'bounce' in error_msg.lower():
+                update_delivery_status(db, delivery, 'failed', error_msg)
                 if campaign_send_id:
                     update_send_progress(db, campaign_send_id, success=False, error=error_msg)
                 return {'success': False, 'error': error_msg, 'permanent_failure': True}
@@ -225,6 +272,12 @@ def send_campaign_email(self, campaign_id, customer_id, campaign_send_id=None):
 
         # Check if max retries exceeded
         if self.request.retries >= self.max_retries:
+            # Mark delivery as failed after all retries exhausted
+            try:
+                delivery = get_or_create_delivery(db, campaign_id, customer_id, campaign_send_id)
+                update_delivery_status(db, delivery, 'failed', str(e))
+            except Exception:
+                pass  # Don't fail on tracking error
             if campaign_send_id:
                 update_send_progress(db, campaign_send_id, success=False, error=str(e))
             return {'success': False, 'error': str(e), 'permanent_failure': True}

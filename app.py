@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 
 from backend.database import init_db, get_db
-from backend.models import Customer, Campaign, CampaignSend, QRCode
+from backend.models import Customer, Campaign, CampaignSend, QRCode, EmailDelivery
 from backend.csv_importer import import_csv, is_valid_email
 from backend.sms_service import format_phone_number, validate_phone_number
 from backend.email_service import send_test_email, render_email_template, send_email
@@ -980,13 +980,27 @@ def campaign_send_confirm(campaign_id):
         # Get unique segments for filtering
         segments = get_unique_segments(db)
 
+        # Get delivery stats for resume feature
+        emails_sent = db.query(EmailDelivery).filter_by(
+            campaign_id=campaign_id,
+            status='sent'
+        ).count()
+        emails_failed = db.query(EmailDelivery).filter_by(
+            campaign_id=campaign_id,
+            status='failed'
+        ).count()
+        emails_pending = total_subscribers - emails_sent
+
         return render_template('campaign_send_confirm.html',
                              campaign=campaign,
                              total_subscribers=total_subscribers,
                              email_only=email_only,
                              sms_only=sms_only,
                              both=both,
-                             segments=segments)
+                             segments=segments,
+                             emails_sent=emails_sent,
+                             emails_failed=emails_failed,
+                             emails_pending=emails_pending)
     finally:
         db.close()
 
@@ -1181,6 +1195,94 @@ def campaign_send(campaign_id):
         return redirect('/campaigns')
     finally:
         db.close()
+
+
+@app.route('/campaign/resume/<int:campaign_id>', methods=['POST'])
+@auth.login_required
+def campaign_resume(campaign_id):
+    """
+    Resume a campaign - only send to customers who haven't received it yet
+
+    Uses EmailDelivery tracking to identify unsent recipients.
+    """
+    db = get_db()
+    try:
+        campaign = db.query(Campaign).filter_by(id=campaign_id).first()
+        if not campaign:
+            flash('Campaign not found', 'error')
+            return redirect('/campaigns')
+
+        # Get form data (same as regular send)
+        channel = request.form.get('channel', 'all')
+        segment = request.form.get('segment', 'all')
+
+        # Get subscribers based on channel
+        if channel == 'email_only':
+            query = db.query(Customer).filter_by(subscribed=True, sms_subscribed=False)
+        elif channel == 'sms_only':
+            query = db.query(Customer).filter_by(sms_subscribed=True, subscribed=False)
+        elif channel == 'both':
+            query = db.query(Customer).filter_by(subscribed=True, sms_subscribed=True)
+        else:  # 'all'
+            query = db.query(Customer).filter_by(subscribed=True)
+
+        # Apply segment filter if specified
+        if segment and segment != 'all':
+            query = query.filter(Customer.segments.like(f'%{segment}%'))
+
+        all_subscribers = query.all()
+
+        # Find customers who already received this campaign successfully
+        sent_deliveries = db.query(EmailDelivery.customer_id).filter_by(
+            campaign_id=campaign_id,
+            status='sent'
+        ).all()
+        sent_customer_ids = {d.customer_id for d in sent_deliveries}
+
+        # Filter to only unsent customers
+        unsent_subscribers = [c for c in all_subscribers if c.id not in sent_customer_ids]
+        total_count = len(unsent_subscribers)
+        already_sent = len(sent_customer_ids)
+
+        if total_count == 0:
+            flash(f'All {already_sent} subscribers have already received this campaign!', 'info')
+            return redirect('/campaigns')
+
+        # Create new CampaignSend record for this resume batch
+        campaign_send_record = CampaignSend(
+            campaign_id=campaign_id,
+            total_emails=total_count,
+            emails_sent=0,
+            emails_failed=0,
+            status='sending'
+        )
+        db.add(campaign_send_record)
+        db.commit()
+        campaign_send_id = campaign_send_record.id
+
+        # Queue tasks only for unsent customers
+        from backend.tasks.email_task import send_campaign_email
+
+        for customer in unsent_subscribers:
+            send_campaign_email.delay(
+                campaign_id=campaign.id,
+                customer_id=customer.id,
+                campaign_send_id=campaign_send_id
+            )
+
+        # Update campaign status
+        campaign.status = 'sending'
+        db.commit()
+
+        flash(f'Campaign resumed! Sending to {total_count} remaining subscribers ({already_sent} already sent). Check campaigns page for progress.', 'success')
+        return redirect('/campaigns')
+
+    except Exception as e:
+        flash(f'Error resuming campaign: {str(e)}', 'error')
+        return redirect('/campaigns')
+    finally:
+        db.close()
+
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():

@@ -160,6 +160,28 @@ class CampaignSend(Base):
         return f"<CampaignSend campaign_id={self.campaign_id} {self.emails_sent}/{self.total_emails}>"
 
 
+class EmailDelivery(Base):
+    """
+    Track individual email delivery status for each customer/campaign
+
+    Enables campaign resume functionality - only send to customers
+    who haven't successfully received the email.
+    """
+    __tablename__ = 'email_deliveries'
+
+    id = Column(Integer, primary_key=True)
+    campaign_id = Column(Integer, ForeignKey('campaigns.id'), nullable=False, index=True)
+    customer_id = Column(Integer, ForeignKey('customers.id'), nullable=False, index=True)
+    campaign_send_id = Column(Integer, ForeignKey('campaign_sends.id'), nullable=True, index=True)
+    status = Column(String(50), default='queued')  # queued, sent, failed, bounced
+    error_message = Column(Text, nullable=True)
+    queued_at = Column(DateTime, default=func.now())
+    sent_at = Column(DateTime, nullable=True)
+
+    def __repr__(self):
+        return f"<EmailDelivery campaign={self.campaign_id} customer={self.customer_id} status={self.status}>"
+
+
 class QRCode(Base):
     """
     Unique QR code for campaign redemption tracking

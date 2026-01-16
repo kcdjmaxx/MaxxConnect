@@ -25,6 +25,44 @@
     </div>
 </div>
 
+{% if emails_sent > 0 %}
+<div class="card resume-card">
+    <h3>📊 Previous Send Status</h3>
+    <div class="delivery-stats">
+        <div class="stat">
+            <span class="stat-number success">{{ emails_sent }}</span>
+            <span class="stat-label">Sent</span>
+        </div>
+        <div class="stat">
+            <span class="stat-number warning">{{ emails_failed }}</span>
+            <span class="stat-label">Failed</span>
+        </div>
+        <div class="stat">
+            <span class="stat-number info">{{ emails_pending }}</span>
+            <span class="stat-label">Remaining</span>
+        </div>
+    </div>
+
+    {% if emails_pending > 0 %}
+    <form method="POST" action="/campaign/resume/{{ campaign.id }}" style="margin-top: 16px;">
+        <input type="hidden" name="channel" value="all">
+        <input type="hidden" name="segment" value="all">
+        <p style="margin-bottom: 12px; color: #666;">
+            Resume sending to the {{ emails_pending }} subscribers who haven't received this campaign yet.
+        </p>
+        <button type="submit" class="btn btn-resume"
+                onclick="return confirm('Resume campaign?\n\nThis will send to {{ emails_pending }} subscribers who have not yet received this campaign.')">
+            🔄 Resume Campaign ({{ emails_pending }} remaining)
+        </button>
+    </form>
+    {% else %}
+    <p style="margin-top: 12px; color: #4caf50;">
+        ✓ All subscribers have received this campaign!
+    </p>
+    {% endif %}
+</div>
+{% endif %}
+
 <div class="card">
     <h3>Send Options</h3>
 
@@ -178,6 +216,34 @@
 .btn-sm {
     padding: 8px 16px;
     font-size: 14px;
+}
+.btn-resume {
+    background: #2196f3;
+    color: white;
+}
+.resume-card {
+    border-left: 4px solid #2196f3;
+}
+.delivery-stats {
+    display: flex;
+    gap: 24px;
+    margin-top: 12px;
+}
+.stat {
+    text-align: center;
+}
+.stat-number {
+    display: block;
+    font-size: 28px;
+    font-weight: bold;
+}
+.stat-number.success { color: #4caf50; }
+.stat-number.warning { color: #ff9800; }
+.stat-number.info { color: #2196f3; }
+.stat-label {
+    font-size: 12px;
+    color: #666;
+    text-transform: uppercase;
 }
 </style>
 
