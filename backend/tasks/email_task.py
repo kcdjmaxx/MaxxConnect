@@ -155,9 +155,14 @@ def send_campaign_email(self, campaign_id, customer_id, campaign_send_id=None):
         template_vars = build_result['vars']
         qr_attachment = build_result['qr_attachment']
 
-        # Replace QR code placeholder with CID reference BEFORE Jinja2 rendering
+        # Replace placeholders BEFORE Jinja2 rendering
         html_content = campaign.html_content
         inline_attachments = []
+
+        # Replace customer name placeholder
+        customer_name = template_vars.get('customer_name', 'Valued Customer')
+        html_content = html_content.replace('[[CUSTOMER_NAME]]', customer_name)
+        logger.info(f"Personalization: Replaced [[CUSTOMER_NAME]] with '{customer_name}'")
 
         logger.info(f"QR DEBUG: has_qr_code={campaign.has_qr_code}, qr_attachment={qr_attachment is not None}")
         if campaign.has_qr_code and qr_attachment:

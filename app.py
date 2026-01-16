@@ -573,10 +573,12 @@ def test_template():
     """Test the Monday special email template with QR code placeholder approach"""
     # Render base template
     html = render_template('email/monday_special.html',
-                          customer_name='Test Customer',
                           logo_url='/static/images/FNFWebLogo200x50.png',
                           hero_image_url='/static/images/FNFFront600x300.png',
                           unsubscribe_link='/unsubscribe?token=test123')
+
+    # Replace customer name placeholder
+    html = html.replace('[[CUSTOMER_NAME]]', 'Test Customer')
 
     # Inject QR placeholder HTML
     qr_placeholder_html = '''
@@ -686,10 +688,9 @@ def campaign_new():
                 from backend.image_handler import ImageHandler
 
                 # Build template variables
-                # Note: Don't include unsubscribe_link here - it will be added when sending
-                template_vars = {
-                    'customer_name': 'Sample Customer'
-                }
+                # Note: Don't include customer_name or unsubscribe_link here
+                # [[CUSTOMER_NAME]] placeholder will be replaced at send time
+                template_vars = {}
 
                 # Use base64 for development, external URLs for production
                 if Config.is_development():
@@ -741,13 +742,15 @@ def campaign_new():
                     try:
                         # Generate personalized test email
                         template_vars = {
-                            'customer_name': 'Test Customer',
                             'unsubscribe_link': '#test-unsubscribe'
                         }
 
+                        # Replace placeholders before Jinja2 rendering
+                        html_to_render = campaign.html_content
+                        html_to_render = html_to_render.replace('[[CUSTOMER_NAME]]', 'Test Customer')
+
                         # Generate real QR code for test if campaign has it enabled
                         # Use CID approach for Gmail compatibility
-                        html_to_render = campaign.html_content
                         inline_attachments = []
                         if campaign.has_qr_code:
                             from backend.config import Config
@@ -862,10 +865,9 @@ def campaign_edit(campaign_id):
                     from backend.image_handler import ImageHandler
 
                     # Build template variables
-                    # Note: Don't include unsubscribe_link here - it will be added when sending
-                    template_vars = {
-                        'customer_name': 'Sample Customer'
-                    }
+                    # Note: Don't include customer_name or unsubscribe_link here
+                    # [[CUSTOMER_NAME]] placeholder will be replaced at send time
+                    template_vars = {}
 
                     # Use base64 for development, external URLs for production
                     if Config.is_development():
@@ -1038,7 +1040,6 @@ def campaign_send(campaign_id):
                 print(f"DEBUG: Environment: {Config.ENV}")
 
                 template_vars = {
-                    'customer_name': 'Test Customer',
                     'unsubscribe_link': unsubscribe_link
                 }
 
@@ -1065,6 +1066,9 @@ def campaign_send(campaign_id):
                         campaign.template_name,
                         **template_vars
                     )
+
+                    # Replace customer name placeholder (survives Jinja2 rendering)
+                    personalized_html = personalized_html.replace('[[CUSTOMER_NAME]]', 'Test Customer')
 
                     # If QR codes enabled, inject QR placeholder HTML with CID reference
                     inline_attachments = []
