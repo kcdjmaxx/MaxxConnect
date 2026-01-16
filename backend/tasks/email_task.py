@@ -139,9 +139,13 @@ def send_campaign_email(self, campaign_id, customer_id, campaign_send_id=None):
         # Replace QR code placeholder BEFORE Jinja2 rendering
         # (SendGrid strips src attributes with non-URL values like [[...]])
         html_content = campaign.html_content
+        logger.info(f"QR DEBUG: has_qr_code={campaign.has_qr_code}, qr_base64_in_vars={'qr_code_base64' in template_vars}")
         if campaign.has_qr_code and 'qr_code_base64' in template_vars:
-            qr_data_uri = f"data:image/png;base64,{template_vars['qr_code_base64']}"
-            html_content = html_content.replace('[[QR_CODE_DATA_URI]]', qr_data_uri)
+            qr_data_uri = f"data:image/png;base64,{template_vars['qr_code_base64'][:50]}..."
+            logger.info(f"QR DEBUG: Replacing [[QR_CODE_DATA_URI]] with data URI")
+            placeholder_found = '[[QR_CODE_DATA_URI]]' in html_content
+            logger.info(f"QR DEBUG: Placeholder found in html_content: {placeholder_found}")
+            html_content = html_content.replace('[[QR_CODE_DATA_URI]]', f"data:image/png;base64,{template_vars['qr_code_base64']}")
 
         # Render template (using Jinja2 directly since no Flask context)
         template = Template(html_content)
