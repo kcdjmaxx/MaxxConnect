@@ -363,21 +363,170 @@ const snippets = {
     qr_section: `<!-- QR_CODE_SECTION -->`
 };
 
-// Insert snippet at cursor position
+// Smart insert - finds the right location for each snippet type
 function insertSnippet(snippetName) {
     const snippet = snippets[snippetName];
     if (!snippet) return;
 
-    const start = editor.selectionStart;
-    const end = editor.selectionEnd;
-    const text = editor.value;
+    let text = editor.value;
+    let insertPos = -1;
+    let insertText = snippet;
 
-    editor.value = text.substring(0, start) + snippet + text.substring(end);
-    editor.selectionStart = editor.selectionEnd = start + snippet.length;
+    switch(snippetName) {
+        case 'unsubscribe':
+            // Find footer area - look for common patterns
+            insertPos = findFooterInsertPosition(text);
+            if (insertPos === -1) {
+                // Fallback: before </body>
+                insertPos = text.toLowerCase().lastIndexOf('</body>');
+                if (insertPos > -1) {
+                    insertText = '\n                <p style="margin: 10px 0;">\n                  ' + snippet + '\n                </p>\n';
+                }
+            } else {
+                insertText = '\n                ' + snippet;
+            }
+            break;
+
+        case 'address':
+            // Insert in footer, before unsubscribe link if present
+            let unsubPos = text.toLowerCase().indexOf('unsubscribe');
+            if (unsubPos > -1) {
+                // Find the start of the paragraph/element containing unsubscribe
+                let searchBack = text.lastIndexOf('<p', unsubPos);
+                let searchBackTd = text.lastIndexOf('<td', unsubPos);
+                insertPos = Math.max(searchBack, searchBackTd);
+                if (insertPos > -1) {
+                    insertText = snippet + '\n                ';
+                }
+            }
+            if (insertPos === -1) {
+                // Fallback: before </body>
+                insertPos = text.toLowerCase().lastIndexOf('</body>');
+                if (insertPos > -1) {
+                    insertText = snippet + '\n';
+                }
+            }
+            break;
+
+        case 'privacy':
+            // Find existing unsubscribe link and add after it
+            let unsubMatch = text.match(/<a[^>]*unsubscribe[^>]*>.*?<\/a>/i);
+            if (unsubMatch) {
+                insertPos = text.indexOf(unsubMatch[0]) + unsubMatch[0].length;
+                insertText = '\n                  &nbsp;|&nbsp;\n                  ' + snippet;
+            } else {
+                // Fallback: find footer area
+                insertPos = findFooterInsertPosition(text);
+                if (insertPos === -1) {
+                    insertPos = text.toLowerCase().lastIndexOf('</body>');
+                }
+                if (insertPos > -1) {
+                    insertText = '\n                ' + snippet;
+                }
+            }
+            break;
+
+        case 'customer_name':
+            // Find greeting patterns: Hey, Hello, Hi, Welcome, Dear
+            let greetingPatterns = [
+                /Hey there,?\s*/i,
+                /Hello,?\s*/i,
+                /Hi,?\s*/i,
+                /Welcome,?\s*/i,
+                /Dear\s+/i,
+                /Hey,?\s*/i
+            ];
+            for (let pattern of greetingPatterns) {
+                let match = text.match(pattern);
+                if (match) {
+                    insertPos = text.indexOf(match[0]) + match[0].length;
+                    insertText = snippet + '! ';
+                    break;
+                }
+            }
+            if (insertPos === -1) {
+                // Fallback: after first <p> or <td> in body content
+                let bodyStart = text.toLowerCase().indexOf('<body');
+                if (bodyStart > -1) {
+                    let firstP = text.indexOf('<p', bodyStart);
+                    let firstTd = text.indexOf('<td', bodyStart);
+                    let tagPos = firstP > -1 ? firstP : firstTd;
+                    if (firstTd > -1 && (firstTd < tagPos || tagPos === -1)) tagPos = firstTd;
+                    if (tagPos > -1) {
+                        // Find the closing > of this tag
+                        let closeTag = text.indexOf('>', tagPos);
+                        if (closeTag > -1) {
+                            insertPos = closeTag + 1;
+                            insertText = snippet;
+                        }
+                    }
+                }
+            }
+            break;
+
+        case 'qr_section':
+            // Insert before footer section
+            let footerComment = text.indexOf('<!-- Email Footer');
+            if (footerComment > -1) {
+                insertPos = footerComment;
+                insertText = snippet + '\n\n            ';
+            } else {
+                // Look for footer table or last </table> before </body>
+                let bodyEnd = text.toLowerCase().lastIndexOf('</body>');
+                if (bodyEnd > -1) {
+                    // Find the last </table> before </body>
+                    let lastTable = text.lastIndexOf('</table>', bodyEnd);
+                    if (lastTable > -1) {
+                        insertPos = lastTable;
+                        insertText = '\n            ' + snippet + '\n\n          ';
+                    } else {
+                        insertPos = bodyEnd;
+                        insertText = snippet + '\n';
+                    }
+                }
+            }
+            break;
+    }
+
+    // If we found a position, insert there; otherwise insert at cursor
+    if (insertPos > -1) {
+        editor.value = text.substring(0, insertPos) + insertText + text.substring(insertPos);
+        editor.selectionStart = editor.selectionEnd = insertPos + insertText.length;
+    } else {
+        // Fallback to cursor position
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        editor.value = text.substring(0, start) + snippet + text.substring(end);
+        editor.selectionStart = editor.selectionEnd = start + snippet.length;
+    }
+
     editor.focus();
-
-    // Trigger preview update
     updatePreview();
+}
+
+// Helper: find a good position in the footer for links
+function findFooterInsertPosition(text) {
+    // Look for footer comment
+    let footerComment = text.indexOf('<!-- Email Footer');
+    if (footerComment > -1) {
+        // Find the first <td> or <p> after the footer comment
+        let nextTd = text.indexOf('<td', footerComment);
+        let nextP = text.indexOf('<p', footerComment);
+        let tagPos = -1;
+        if (nextTd > -1 && nextP > -1) {
+            tagPos = Math.min(nextTd, nextP);
+        } else {
+            tagPos = nextTd > -1 ? nextTd : nextP;
+        }
+        if (tagPos > -1) {
+            // Find content inside
+            let closeTag = text.indexOf('>', tagPos);
+            if (closeTag > -1) {
+                return closeTag + 1;
+            }
+        }
+    }
+    return -1;
 }
 
 // Initial preview
