@@ -36,6 +36,15 @@ Email/SMS marketing platform with:
 **Purpose:** Background processing with rate limiting
 **Design Elements:** crc-CeleryApp.md, crc-EmailQueueTask.md, crc-SMSQueueTask.md, crc-RateLimiter.md
 
+### Template Management (PLANNED - Phase 2.5)
+**Purpose:** Import, validate, and edit email templates
+**Design Elements:** crc-TemplateProcessor.md, ui-template-list.md, ui-template-import.md, seq-template-import.md
+**Features:**
+- Template import wizard (upload HTML, auto-inject placeholders)
+- Template validation (check required elements)
+- Template editor (simple textarea with live preview)
+- Starter template generation
+
 ### Customer Segmentation (PARTIAL)
 **Purpose:** Organize customers into targetable groups
 **Design Elements:** crc-Customer.md, crc-SegmentManager.md
@@ -121,6 +130,8 @@ Email/SMS marketing platform with:
   - [x] backend/services/rate_limiter.py
 - crc-CampaignAnalytics.md
   - [ ] backend/services/campaign_analytics.py - Phase 3
+- crc-TemplateProcessor.md
+  - [ ] backend/services/template_processor.py - Phase 2.5
 
 ### Sequences
 - seq-csv-import.md
@@ -151,6 +162,9 @@ Email/SMS marketing platform with:
   - [ ] Phase 2
 - seq-campaign-analytics.md
   - [ ] Phase 3
+- seq-template-import.md
+  - [ ] app.py (template routes) - Phase 2.5
+  - [ ] backend/services/template_processor.py - Phase 2.5
 
 ### UI Specs
 - ui-campaign-list.md
@@ -167,6 +181,12 @@ Email/SMS marketing platform with:
   - [ ] Phase 2
 - ui-qr-display.md
   - [ ] Phase 2
+- ui-template-list.md
+  - [ ] templates/template_list.html - Phase 2.5
+- ui-template-import.md
+  - [ ] templates/template_import.html - Phase 2.5
+- ui-template-edit.md
+  - [ ] templates/template_edit.html - Phase 2.5
 
 ### Test Designs
 - test-Campaign.md

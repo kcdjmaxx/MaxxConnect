@@ -34,8 +34,13 @@ tags:
 - ✅ Progress tracking UI with live polling
 
 ### Blocking Issues
-1. **SendGrid limit:** Trial allows only 100 emails/day. Upgrade pending regulatory approval.
-2. **A2P 10DLC:** SMS blocked until Twilio approves campaign registration.
+1. **A2P 10DLC:** SMS blocked until Twilio approves campaign registration.
+
+### Planned Features (Phase 2.5: Template Management)
+- Template import wizard (upload HTML, auto-inject placeholders)
+- Template validation (check required elements)
+- Template editor with live preview
+- See: `design/crc-TemplateProcessor.md`, `design/seq-template-import.md`
 
 ---
 
