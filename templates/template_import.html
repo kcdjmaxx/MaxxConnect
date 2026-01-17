@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}Import Template{% endblock %}
+
+{% block content %}
+<h1>📥 Import Email Template</h1>
+
+<div class="wizard-steps">
+    <div class="step {{ 'active' if step == 1 else 'completed' if step > 1 else '' }}">
+        <span class="step-number">1</span>
+        <span class="step-label">Upload</span>
+    </div>
+    <div class="step-connector {{ 'completed' if step > 1 else '' }}"></div>
+    <div class="step {{ 'active' if step == 2 else 'completed' if step > 2 else '' }}">
+        <span class="step-number">2</span>
+        <span class="step-label">Review</span>
+    </div>
+    <div class="step-connector {{ 'completed' if step > 2 else '' }}"></div>
+    <div class="step {{ 'active' if step == 3 else '' }}">
+        <span class="step-number">3</span>
+        <span class="step-label">Save</span>
+    </div>
+</div>
+
+{% if step == 1 %}
+<!-- Step 1: Upload HTML -->
+<div class="card">
+    <h2>Step 1: Upload or Paste HTML</h2>
+    <p>Upload an HTML file from your email editor (like DreamWeaver) or paste HTML code directly.</p>
+
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="step" value="1">
+
+        <div class="form-group">
+            <label for="htmlfile">Upload HTML File:</label>
+            <input type="file" name="htmlfile" id="htmlfile" accept=".html,.htm" class="form-control">
+        </div>
+
+        <div class="divider">
+            <span>OR</span>
+        </div>
+
+        <div class="form-group">
+            <label for="html_paste">Paste HTML Code:</label>
+            <textarea name="html_paste" id="html_paste" class="form-control code-input" rows="15"
+                      placeholder="Paste your HTML code here..."></textarea>
+        </div>
+
+        <div class="form-actions">
+            <a href="/templates" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Analyze HTML →</button>
+        </div>
+    </form>
+</div>
+
+{% elif step == 2 %}
+<!-- Step 2: Review & Configure -->
+<div class="card">
+    <h2>Step 2: Review Changes</h2>
+    <p>We've analyzed your template and made some improvements. Review the changes below.</p>
+
+    <form method="POST">
+        <input type="hidden" name="step" value="2">
+        <input type="hidden" name="processed_html" value="{{ processed_html | e }}">
+
+        <!-- Validation Report -->
+        {% if report %}
+        <div class="validation-report">
+            {% if report.errors %}
+            <div class="report-section report-errors">
+                <h4>❌ Errors (must fix)</h4>
+                <ul>
+                    {% for error in report.errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if report.warnings %}
+            <div class="report-section report-warnings">
+                <h4>⚠️ Warnings (recommended)</h4>
+                <ul>
+                    {% for warning in report.warnings %}
+                    <li>{{ warning }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if report.info %}
+            <div class="report-section report-info">
+                <h4>ℹ️ Suggestions</h4>
+                <ul>
+                    {% for info in report.info %}
+                    <li>{{ info }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if report.is_valid and not report.warnings and not report.info %}
+            <div class="report-section report-success">
+                <h4>✅ Template looks good!</h4>
+                <p>All required elements are present.</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label for="template_name">Template Name: <span class="required">*</span></label>
+            <input type="text" name="template_name" id="template_name" class="form-control"
+                   placeholder="e.g., Holiday Special, Welcome Email"
+                   value="{{ template_name or '' }}" required>
+            <small>This will be the filename (spaces will become underscores)</small>
+        </div>
+
+        <div class="preview-toggle">
+            <button type="button" class="btn btn-secondary" onclick="togglePreview()">
+                👁️ Toggle Preview
+            </button>
+        </div>
+
+        <div id="html-preview" class="html-preview" style="display: none;">
+            <h4>Processed HTML Preview:</h4>
+            <iframe id="preview-frame" frameborder="0"></iframe>
+        </div>
+
+        <div class="form-actions">
+            <a href="/template/import" class="btn btn-secondary">← Back</a>
+            <button type="submit" class="btn btn-primary">Continue →</button>
+        </div>
+    </form>
+</div>
+
+<script>
+const processedHtml = {{ processed_html | tojson }};
+
+function togglePreview() {
+    const preview = document.getElementById('html-preview');
+    const frame = document.getElementById('preview-frame');
+
+    if (preview.style.display === 'none') {
+        preview.style.display = 'block';
+        frame.srcdoc = processedHtml;
+    } else {
+        preview.style.display = 'none';
+    }
+}
+</script>
+
+{% elif step == 3 %}
+<!-- Step 3: Confirm & Save -->
+<div class="card">
+    <h2>Step 3: Save Template</h2>
+    <p>Ready to save your template. Please confirm the details below.</p>
+
+    <form method="POST">
+        <input type="hidden" name="step" value="3">
+        <input type="hidden" name="processed_html" value="{{ processed_html | e }}">
+        <input type="hidden" name="template_name" value="{{ template_name }}">
+
+        <div class="confirm-details">
+            <div class="detail-row">
+                <strong>Template Name:</strong>
+                <span>{{ template_name }}</span>
+            </div>
+            <div class="detail-row">
+                <strong>Validation Status:</strong>
+                {% if report.is_valid %}
+                <span class="badge badge-success">Valid</span>
+                {% else %}
+                <span class="badge badge-warning">Has Warnings</span>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if report and not report.is_valid %}
+        <div class="warning-box">
+            <strong>⚠️ Warning:</strong> This template has validation errors. It may not work correctly for campaigns.
+            You can still save it and fix the issues later.
+        </div>
+        {% endif %}
+
+        <div class="html-preview">
+            <h4>Final Preview:</h4>
+            <iframe id="final-preview" frameborder="0"></iframe>
+        </div>
+
+        <div class="form-actions">
+            <a href="/template/import" class="btn btn-secondary">← Start Over</a>
+            <button type="submit" class="btn btn-success">💾 Save Template</button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const html = {{ processed_html | tojson }};
+    document.getElementById('final-preview').srcdoc = html;
+});
+</script>
+{% endif %}
+
+<style>
+.wizard-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2rem;
+    padding: 1rem 0;
+}
+
+.step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #9ca3af;
+}
+
+.step.active {
+    color: #2563eb;
+}
+
+.step.completed {
+    color: #16a34a;
+}
+
+.step-number {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.step.active .step-number {
+    background: #2563eb;
+    color: white;
+}
+
+.step.completed .step-number {
+    background: #16a34a;
+    color: white;
+}
+
+.step-connector {
+    width: 60px;
+    height: 2px;
+    background: #e5e7eb;
+    margin: 0 0.5rem;
+}
+
+.step-connector.completed {
+    background: #16a34a;
+}
+
+.divider {
+    text-align: center;
+    margin: 1.5rem 0;
+    position: relative;
+}
+
+.divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e5e7eb;
+}
+
+.divider span {
+    background: white;
+    padding: 0 1rem;
+    position: relative;
+    color: #6b7280;
+}
+
+.code-input {
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.validation-report {
+    margin-bottom: 1.5rem;
+}
+
+.report-section {
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+}
+
+.report-section h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.95rem;
+}
+
+.report-section ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.report-section li {
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.report-errors {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+}
+
+.report-warnings {
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+}
+
+.report-info {
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+}
+
+.report-success {
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+}
+
+.html-preview {
+    margin: 1.5rem 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.html-preview h4 {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.9rem;
+}
+
+.html-preview iframe {
+    width: 100%;
+    height: 400px;
+    display: block;
+}
+
+.preview-toggle {
+    margin: 1rem 0;
+}
+
+.confirm-details {
+    background: #f9fafb;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.warning-box {
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.required {
+    color: #dc2626;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+</style>
+{% endblock %}

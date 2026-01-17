@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Template - {{ filename }}{% endblock %}
+
+{% block content %}
+<div class="editor-header">
+    <h1>✏️ Edit Template: {{ filename }}</h1>
+    <a href="/templates" class="btn btn-secondary">← Back to Templates</a>
+</div>
+
+<div class="editor-layout">
+    <!-- Left Panel: Editor -->
+    <div class="editor-panel">
+        <form method="POST" id="editor-form">
+            <div class="editor-toolbar">
+                <button type="submit" name="action" value="save" class="btn btn-success">💾 Save</button>
+                <button type="submit" name="action" value="validate" class="btn btn-secondary">✓ Validate</button>
+                <button type="button" class="btn btn-secondary" onclick="refreshPreview()">🔄 Refresh Preview</button>
+            </div>
+
+            <div class="form-group">
+                <textarea name="html_content" id="html_content" class="code-editor">{{ html_content }}</textarea>
+            </div>
+
+            <div class="test-email-section">
+                <h4>Send Test Email</h4>
+                <div class="test-email-row">
+                    <input type="email" name="test_email" id="test_email" class="form-control"
+                           placeholder="Enter test email address">
+                    <button type="submit" name="action" value="test" class="btn btn-primary">📧 Send Test</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Right Panel: Preview & Validation -->
+    <div class="preview-panel">
+        <!-- Validation Report -->
+        {% if report %}
+        <div class="validation-box">
+            <h3>Validation Status</h3>
+            {% if report.is_valid and not report.warnings %}
+            <div class="status-badge status-valid">✅ Valid</div>
+            {% elif report.is_valid %}
+            <div class="status-badge status-warning">⚠️ {{ report.warning_count }} Warning{{ 's' if report.warning_count > 1 else '' }}</div>
+            {% else %}
+            <div class="status-badge status-error">❌ {{ report.error_count }} Error{{ 's' if report.error_count > 1 else '' }}</div>
+            {% endif %}
+
+            {% if report.errors %}
+            <div class="report-list">
+                <h4>Errors</h4>
+                <ul class="error-list">
+                    {% for error in report.errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if report.warnings %}
+            <div class="report-list">
+                <h4>Warnings</h4>
+                <ul class="warning-list">
+                    {% for warning in report.warnings %}
+                    <li>{{ warning }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if report.info %}
+            <div class="report-list">
+                <h4>Suggestions</h4>
+                <ul class="info-list">
+                    {% for info in report.info %}
+                    <li>{{ info }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Live Preview -->
+        <div class="preview-box">
+            <h3>Live Preview</h3>
+            <div class="preview-container">
+                <iframe id="preview-frame" frameborder="0"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.editor-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.editor-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 1.5rem;
+    height: calc(100vh - 200px);
+    min-height: 600px;
+}
+
+.editor-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-toolbar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.code-editor {
+    width: 100%;
+    height: calc(100% - 150px);
+    min-height: 400px;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    padding: 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    resize: vertical;
+    tab-size: 2;
+}
+
+.code-editor:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.test-email-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.test-email-section h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.test-email-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.test-email-row input {
+    flex: 1;
+}
+
+.preview-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
+}
+
+.validation-box,
+.preview-box {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.validation-box h3,
+.preview-box h3 {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.95rem;
+}
+
+.validation-box {
+    flex-shrink: 0;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    margin: 1rem;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.status-valid {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.report-list {
+    padding: 0 1rem 1rem 1rem;
+}
+
+.report-list h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.report-list ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    font-size: 0.85rem;
+}
+
+.report-list li {
+    margin-bottom: 0.25rem;
+}
+
+.error-list li {
+    color: #991b1b;
+}
+
+.warning-list li {
+    color: #92400e;
+}
+
+.info-list li {
+    color: #0369a1;
+}
+
+.preview-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 300px;
+}
+
+.preview-container {
+    flex: 1;
+    overflow: hidden;
+}
+
+.preview-container iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 300px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .editor-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+
+    .preview-panel {
+        max-height: 500px;
+    }
+
+    .code-editor {
+        height: 400px;
+    }
+}
+</style>
+
+<script>
+const editor = document.getElementById('html_content');
+const previewFrame = document.getElementById('preview-frame');
+
+// Initial preview
+updatePreview();
+
+// Debounced live preview
+let previewTimeout;
+editor.addEventListener('input', function() {
+    clearTimeout(previewTimeout);
+    previewTimeout = setTimeout(updatePreview, 500);
+});
+
+function updatePreview() {
+    let html = editor.value;
+    // Replace placeholders with sample data for preview
+    html = html.replace(/\[\[CUSTOMER_NAME\]\]/g, 'Sample Customer');
+    html = html.replace(/\{\{\s*unsubscribe_link\s*\}\}/g, '#unsubscribe');
+    html = html.replace(/\{\{\s*logo_url\s*\}\}/g, '{{ url_for("static", filename="images/FNFWebLogo200x50.png", _external=True) }}');
+    html = html.replace(/\{\{\s*hero_image_url\s*\}\}/g, '{{ url_for("static", filename="images/FNFFront600x300.png", _external=True) }}');
+    previewFrame.srcdoc = html;
+}
+
+function refreshPreview() {
+    updatePreview();
+}
+
+// Tab key inserts spaces instead of changing focus
+editor.addEventListener('keydown', function(e) {
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+        this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
+        this.selectionStart = this.selectionEnd = start + 2;
+    }
+});
+</script>
+{% endblock %}

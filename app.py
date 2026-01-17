@@ -1284,6 +1284,303 @@ def campaign_resume(campaign_id):
         db.close()
 
 
+# =============================================================================
+# Template Management Routes
+# CRC: crc-TemplateProcessor.md
+# Seq: seq-template-import.md
+# =============================================================================
+
+@app.route('/templates')
+@auth.login_required
+def template_list():
+    """
+    List all email templates with validation status
+
+    UI: ui-template-list.md
+    """
+    from backend.services.template_processor import TemplateProcessor
+
+    processor = TemplateProcessor()
+    templates = processor.list_templates(app.template_folder)
+
+    return render_template('template_list.html', templates=templates)
+
+
+@app.route('/template/import', methods=['GET', 'POST'])
+@auth.login_required
+def template_import():
+    """
+    Import wizard for email templates
+
+    Seq: seq-template-import.md
+    UI: ui-template-import.md
+    """
+    from backend.services.template_processor import TemplateProcessor
+
+    processor = TemplateProcessor()
+
+    if request.method == 'POST':
+        step = request.form.get('step', '1')
+
+        if step == '1':
+            # Step 1: Receive HTML (file upload or paste)
+            html_content = ''
+
+            if 'htmlfile' in request.files and request.files['htmlfile'].filename:
+                file = request.files['htmlfile']
+                if file.filename.endswith('.html') or file.filename.endswith('.htm'):
+                    html_content = file.read().decode('utf-8')
+                else:
+                    flash('Please upload an HTML file (.html or .htm)', 'error')
+                    return render_template('template_import.html', step=1)
+            else:
+                html_content = request.form.get('html_paste', '')
+
+            if not html_content.strip():
+                flash('Please upload a file or paste HTML code', 'error')
+                return render_template('template_import.html', step=1)
+
+            # Process the HTML and get report
+            processed_html, report = processor.process_all(html_content)
+
+            return render_template('template_import.html',
+                                 step=2,
+                                 original_html=html_content,
+                                 processed_html=processed_html,
+                                 report=report)
+
+        elif step == '2':
+            # Step 2: Review and configure
+            processed_html = request.form.get('processed_html', '')
+            template_name = request.form.get('template_name', '').strip()
+
+            if not template_name:
+                flash('Template name is required', 'error')
+                report = processor.validate(processed_html)
+                return render_template('template_import.html',
+                                     step=2,
+                                     processed_html=processed_html,
+                                     report=report)
+
+            # Sanitize filename
+            safe_name = secure_filename(template_name.lower().replace(' ', '_'))
+            if not safe_name.endswith('.html'):
+                safe_name += '.html'
+
+            # Check if template already exists
+            email_dir = os.path.join(app.template_folder, 'email')
+            template_path = os.path.join(email_dir, safe_name)
+
+            if os.path.exists(template_path):
+                flash(f'Template "{safe_name}" already exists. Please choose a different name.', 'error')
+                report = processor.validate(processed_html)
+                return render_template('template_import.html',
+                                     step=2,
+                                     processed_html=processed_html,
+                                     report=report,
+                                     template_name=template_name)
+
+            # Final validation before save
+            report = processor.validate(processed_html)
+
+            return render_template('template_import.html',
+                                 step=3,
+                                 processed_html=processed_html,
+                                 template_name=safe_name,
+                                 report=report)
+
+        elif step == '3':
+            # Step 3: Save template
+            processed_html = request.form.get('processed_html', '')
+            template_name = request.form.get('template_name', '')
+
+            if not template_name or not processed_html:
+                flash('Missing template data', 'error')
+                return redirect('/template/import')
+
+            # Save to templates/email/
+            email_dir = os.path.join(app.template_folder, 'email')
+            os.makedirs(email_dir, exist_ok=True)
+            template_path = os.path.join(email_dir, template_name)
+
+            try:
+                with open(template_path, 'w', encoding='utf-8') as f:
+                    f.write(processed_html)
+
+                flash(f'Template "{template_name}" imported successfully!', 'success')
+                return redirect('/templates')
+            except Exception as e:
+                flash(f'Error saving template: {str(e)}', 'error')
+                return redirect('/template/import')
+
+    # GET request - show step 1
+    return render_template('template_import.html', step=1)
+
+
+@app.route('/template/edit/<filename>', methods=['GET', 'POST'])
+@auth.login_required
+def template_edit(filename):
+    """
+    Edit an existing email template
+
+    UI: ui-template-edit.md
+    """
+    from backend.services.template_processor import TemplateProcessor
+
+    # Security: ensure filename is safe
+    safe_filename = secure_filename(filename)
+    if safe_filename != filename:
+        flash('Invalid template name', 'error')
+        return redirect('/templates')
+
+    template_path = os.path.join(app.template_folder, 'email', safe_filename)
+
+    if not os.path.exists(template_path):
+        flash('Template not found', 'error')
+        return redirect('/templates')
+
+    processor = TemplateProcessor()
+
+    if request.method == 'POST':
+        action = request.form.get('action', 'save')
+        html_content = request.form.get('html_content', '')
+
+        if action == 'validate':
+            report = processor.validate(html_content)
+            return render_template('template_edit.html',
+                                 filename=safe_filename,
+                                 html_content=html_content,
+                                 report=report)
+
+        elif action == 'save':
+            try:
+                with open(template_path, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+                flash(f'Template "{safe_filename}" saved successfully!', 'success')
+                return redirect('/templates')
+            except Exception as e:
+                flash(f'Error saving template: {str(e)}', 'error')
+                report = processor.validate(html_content)
+                return render_template('template_edit.html',
+                                     filename=safe_filename,
+                                     html_content=html_content,
+                                     report=report)
+
+        elif action == 'test':
+            test_email = request.form.get('test_email', '')
+            if not test_email:
+                flash('Test email address is required', 'error')
+                report = processor.validate(html_content)
+                return render_template('template_edit.html',
+                                     filename=safe_filename,
+                                     html_content=html_content,
+                                     report=report)
+
+            try:
+                # Render with sample data
+                from backend.config import Config
+
+                template_vars = {
+                    'unsubscribe_link': '#test-unsubscribe',
+                    'logo_url': url_for('static', filename='images/FNFWebLogo200x50.png', _external=True),
+                    'hero_image_url': url_for('static', filename='images/FNFFront600x300.png', _external=True)
+                }
+
+                rendered = render_template_string(html_content, **template_vars)
+                rendered = rendered.replace('[[CUSTOMER_NAME]]', 'Test Customer')
+
+                result = send_email(test_email, 'Test Customer', f'Template Test: {safe_filename}', rendered)
+
+                if result.get('success'):
+                    flash(f'Test email sent to {test_email}!', 'success')
+                else:
+                    flash(f'Failed to send test: {result.get("error", "Unknown error")}', 'error')
+
+            except Exception as e:
+                flash(f'Error sending test: {str(e)}', 'error')
+
+            report = processor.validate(html_content)
+            return render_template('template_edit.html',
+                                 filename=safe_filename,
+                                 html_content=html_content,
+                                 report=report)
+
+    # GET request - load template
+    with open(template_path, 'r', encoding='utf-8') as f:
+        html_content = f.read()
+
+    report = processor.validate(html_content)
+
+    return render_template('template_edit.html',
+                         filename=safe_filename,
+                         html_content=html_content,
+                         report=report)
+
+
+@app.route('/template/preview/<filename>')
+@auth.login_required
+def template_preview(filename):
+    """Preview a template with sample data"""
+    safe_filename = secure_filename(filename)
+    template_path = os.path.join(app.template_folder, 'email', safe_filename)
+
+    if not os.path.exists(template_path):
+        return "Template not found", 404
+
+    # Render with sample data
+    template_vars = {
+        'unsubscribe_link': '#test-unsubscribe',
+        'logo_url': url_for('static', filename='images/FNFWebLogo200x50.png', _external=True),
+        'hero_image_url': url_for('static', filename='images/FNFFront600x300.png', _external=True)
+    }
+
+    try:
+        with open(template_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+
+        rendered = render_template_string(html_content, **template_vars)
+        rendered = rendered.replace('[[CUSTOMER_NAME]]', 'Sample Customer')
+        rendered = rendered.replace('<!-- QR_CODE_SECTION -->', '''
+            <table cellspacing="0" cellpadding="0" border="0" align="center" style="margin: 20px auto;">
+              <tr>
+                <td style="text-align: center; padding: 20px; background-color: #f5f5f5; border-radius: 8px;">
+                  <p style="margin: 0 0 10px 0; font-weight: bold; color: #d32f2f;">SHOW THIS QR CODE TO REDEEM:</p>
+                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=SAMPLE" width="200" height="200" alt="Sample QR Code" style="display: block; margin: 0 auto;">
+                  <p style="margin: 10px 0 0 0; font-size: 11px; color: #888;">Sample QR code for preview.</p>
+                </td>
+              </tr>
+            </table>
+        ''')
+
+        return rendered
+    except Exception as e:
+        return f"Error rendering template: {str(e)}", 500
+
+
+@app.route('/template/delete/<filename>', methods=['POST'])
+@auth.login_required
+def template_delete(filename):
+    """Delete a template"""
+    safe_filename = secure_filename(filename)
+    if safe_filename != filename:
+        flash('Invalid template name', 'error')
+        return redirect('/templates')
+
+    template_path = os.path.join(app.template_folder, 'email', safe_filename)
+
+    if not os.path.exists(template_path):
+        flash('Template not found', 'error')
+        return redirect('/templates')
+
+    try:
+        os.remove(template_path)
+        flash(f'Template "{safe_filename}" deleted successfully!', 'success')
+    except Exception as e:
+        flash(f'Error deleting template: {str(e)}', 'error')
+
+    return redirect('/templates')
+
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     """

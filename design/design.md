@@ -36,14 +36,14 @@ Email/SMS marketing platform with:
 **Purpose:** Background processing with rate limiting
 **Design Elements:** crc-CeleryApp.md, crc-EmailQueueTask.md, crc-SMSQueueTask.md, crc-RateLimiter.md
 
-### Template Management (PLANNED - Phase 2.5)
+### Template Management (IMPLEMENTED)
 **Purpose:** Import, validate, and edit email templates
 **Design Elements:** crc-TemplateProcessor.md, ui-template-list.md, ui-template-import.md, seq-template-import.md
 **Features:**
 - Template import wizard (upload HTML, auto-inject placeholders)
 - Template validation (check required elements)
 - Template editor (simple textarea with live preview)
-- Starter template generation
+- Template list with validation status badges
 
 ### Customer Segmentation (PARTIAL)
 **Purpose:** Organize customers into targetable groups
@@ -139,7 +139,7 @@ Email/SMS marketing platform with:
 - crc-CampaignAnalytics.md
   - [ ] backend/services/campaign_analytics.py - Phase 3
 - crc-TemplateProcessor.md
-  - [ ] backend/services/template_processor.py - Phase 2.5
+  - [x] backend/services/template_processor.py
 
 ### Sequences
 - seq-csv-import.md
@@ -171,8 +171,8 @@ Email/SMS marketing platform with:
 - seq-campaign-analytics.md
   - [ ] Phase 3
 - seq-template-import.md
-  - [ ] app.py (template routes) - Phase 2.5
-  - [ ] backend/services/template_processor.py - Phase 2.5
+  - [x] app.py (template routes)
+  - [x] backend/services/template_processor.py
 
 ### UI Specs
 - ui-campaign-list.md
@@ -190,11 +190,11 @@ Email/SMS marketing platform with:
 - ui-qr-display.md
   - [ ] Phase 2
 - ui-template-list.md
-  - [ ] templates/template_list.html - Phase 2.5
+  - [x] templates/template_list.html
 - ui-template-import.md
-  - [ ] templates/template_import.html - Phase 2.5
+  - [x] templates/template_import.html
 - ui-template-edit.md
-  - [ ] templates/template_edit.html - Phase 2.5
+  - [x] templates/template_edit.html
 
 ### Test Designs
 - test-Campaign.md
@@ -228,13 +228,20 @@ Email/SMS marketing platform with:
 
 ## Summary
 
-**Status:** Phase 2 Complete (QR Codes + Async Queue Deployed)
-- CRC Cards: 15 (13 implemented, 2 planned)
-- Sequences: 13 (11 implemented, 2 planned)
-- UI Specs: 7 (4 implemented, 3 planned)
+**Status:** Phase 2.5 Complete (Template Management Implemented)
+- CRC Cards: 15 (14 implemented, 1 planned)
+- Sequences: 13 (12 implemented, 1 planned)
+- UI Specs: 10 (7 implemented, 3 planned)
 - Test Designs: 6 (complete)
 
 **Recent Updates:**
+- **Template Management System (Jan 17, 2026):**
+  - Added `TemplateProcessor` service for validation and auto-injection
+  - New routes: `/templates`, `/template/import`, `/template/edit/<filename>`
+  - Template import wizard: upload HTML, auto-inject required placeholders
+  - Template validation: checks for unsubscribe link, address, customer name, QR section
+  - Template editor with live preview and test email functionality
+  - Template list with validation status badges
 - **Campaign Resume & Delivery Tracking (Jan 16, 2026):**
   - Added `EmailDelivery` model to track individual customer/campaign sends
   - New `/campaign/resume/<id>` route sends only to unsent customers

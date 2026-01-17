@@ -11,7 +11,7 @@ tags:
 # Sequence: Template Import
 
 **Source Spec:** Template Management System Plan
-**Status:** PLANNED (Phase 2.5)
+**Status:** IMPLEMENTED
 
 ## Participants
 - User: Person importing template

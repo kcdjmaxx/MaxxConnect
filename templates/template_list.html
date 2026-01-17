@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Templates{% endblock %}
+
+{% block content %}
+<h1>📝 Email Templates</h1>
+
+<div style="margin-bottom: 2rem;">
+    <a href="/template/import" class="btn">📥 Import Template</a>
+</div>
+
+{% if templates %}
+<div class="template-grid">
+    {% for template in templates %}
+    <div class="template-card">
+        <div class="template-preview">
+            <iframe src="/template/preview/{{ template.filename }}" frameborder="0" scrolling="no"></iframe>
+        </div>
+        <div class="template-info">
+            <h3>{{ template.name }}</h3>
+            <div class="template-status">
+                {% if template.is_valid %}
+                    {% if template.warning_count > 0 %}
+                    <span class="badge badge-warning">{{ template.warning_count }} Warning{{ 's' if template.warning_count > 1 else '' }}</span>
+                    {% else %}
+                    <span class="badge badge-success">Valid</span>
+                    {% endif %}
+                {% else %}
+                <span class="badge badge-danger">{{ template.error_count }} Error{{ 's' if template.error_count > 1 else '' }}</span>
+                {% endif %}
+            </div>
+            <div class="template-actions">
+                <a href="/template/edit/{{ template.filename }}" class="btn btn-sm" title="Edit">✏️ Edit</a>
+                <a href="/template/preview/{{ template.filename }}" class="btn btn-sm" target="_blank" title="Full Preview">👁️ Preview</a>
+                <form method="POST" action="/template/delete/{{ template.filename }}" style="display: inline;">
+                    <button type="submit" class="btn btn-sm btn-danger"
+                            onclick="return confirm('Delete &quot;{{ template.name }}&quot;? This cannot be undone.')"
+                            title="Delete">
+                        🗑️
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <p>No templates found. <a href="/template/import">Import your first template</a>!</p>
+</div>
+{% endif %}
+
+<style>
+.template-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.template-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+}
+
+.template-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.template-preview {
+    height: 180px;
+    overflow: hidden;
+    background: #f5f5f5;
+    position: relative;
+}
+
+.template-preview iframe {
+    width: 600px;
+    height: 800px;
+    transform: scale(0.3);
+    transform-origin: top left;
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.template-info {
+    padding: 1rem;
+}
+
+.template-info h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    color: #1f2937;
+}
+
+.template-status {
+    margin-bottom: 0.75rem;
+}
+
+.template-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.template-actions .btn {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.65rem;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.badge-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+</style>
+{% endblock %}

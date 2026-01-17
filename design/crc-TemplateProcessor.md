@@ -11,7 +11,7 @@ tags:
 # TemplateProcessor
 
 **Source Spec:** Template Management System Plan
-**Status:** PLANNED (Phase 2.5)
+**Status:** IMPLEMENTED
 
 ## Knows
 - required_elements: List of elements templates must have
