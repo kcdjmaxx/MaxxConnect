@@ -18,10 +18,10 @@ tags:
 
 ### Production Status
 - **Railway Deployment:** Live at maxxconnect.up.railway.app
-- **SendGrid:** ⏳ AWAITING REGULATORY APPROVAL (Ticket #24741818)
-  - Free trial hit 100 email/day limit during first campaign
-  - Upgrade submitted, requires regulatory approval
+- **SendGrid:** ✅ UPGRADED TO ESSENTIALS (50,000 emails/month)
+  - Ticket #24741818 - Approved
   - Privacy policy added to email templates
+  - Rate limit: 100/min default (configurable via EMAIL_RATE_LIMIT)
 - **Twilio SMS:** ⏳ Awaiting A2P 10DLC approval
 
 ### Recently Completed (Jan 2026)

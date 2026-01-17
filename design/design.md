@@ -220,10 +220,10 @@ Email/SMS marketing platform with:
   - Added privacy policy link to WelcomeTemplate footer
   - Link: https://fricandfrac.net/privacy/
   - Required for SendGrid upgrade approval
-- **SendGrid Upgrade Pending:**
-  - Trial limit: 100 emails/day (hit during first campaign)
-  - Upgrade ticket: #24741818
-  - Status: Awaiting regulatory approval
+- **SendGrid Upgrade Complete (Jan 16, 2026):**
+  - Upgraded to Essentials plan: 50,000 emails/month
+  - Ticket #24741818 - Approved
+  - Rate limit configurable via EMAIL_RATE_LIMIT env var (default 100/min)
 - **QR Code CID Implementation (Jan 16, 2026):**
   - Implemented Content-ID (CID) approach for Gmail compatibility
   - Gmail blocks base64 data URIs; CID inline attachments work correctly
