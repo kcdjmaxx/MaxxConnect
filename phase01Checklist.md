@@ -42,6 +42,13 @@ tags:
 - Template editor with live preview
 - See: `design/crc-TemplateProcessor.md`, `design/seq-template-import.md`
 
+### Planned Features (Phase 4: List Hygiene)
+- **Bounce cleanup** - Auto-remove hard bounces from subscriber list
+  - Sync with SendGrid Suppressions API
+  - Mark bounced customers as unsubscribed
+  - Dashboard showing bounce stats
+  - Manual "clean list" button
+
 ---
 
 ## Setup Tasks

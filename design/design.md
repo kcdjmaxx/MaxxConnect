@@ -53,6 +53,14 @@ Email/SMS marketing platform with:
 **Purpose:** Track campaign performance metrics
 **Design Elements:** crc-CampaignAnalytics.md
 
+### List Hygiene (PLANNED - Phase 4)
+**Purpose:** Maintain clean subscriber list
+**Features:**
+- Bounce cleanup via SendGrid Suppressions API
+- Auto-unsubscribe hard bounces
+- Bounce rate dashboard
+- Manual list cleaning tools
+
 ## Cross-Cutting Concerns
 
 ### Authentication
