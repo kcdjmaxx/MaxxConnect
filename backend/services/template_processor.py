@@ -103,15 +103,16 @@ class TemplateProcessor:
             report.errors.append("Missing physical mailing address - required for CAN-SPAM compliance")
             report.is_valid = False
 
+        if not self.PRIVACY_LINK_PATTERN.search(html):
+            report.errors.append("Missing privacy policy link - required for compliance")
+            report.is_valid = False
+
         # Recommended checks (warnings)
         if not self.CUSTOMER_NAME_PATTERN.search(html):
             report.warnings.append("Missing [[CUSTOMER_NAME]] placeholder - recommended for personalization")
 
         if not self.QR_SECTION_PATTERN.search(html):
             report.warnings.append("Missing <!-- QR_CODE_SECTION --> comment - required for QR code campaigns")
-
-        if not self.PRIVACY_LINK_PATTERN.search(html):
-            report.warnings.append("Missing privacy policy link - recommended for compliance")
 
         if not self.PREHEADER_PATTERN.search(html):
             report.warnings.append("Missing preheader text - recommended for email previews")

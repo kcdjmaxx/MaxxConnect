@@ -18,6 +18,17 @@
                 <button type="button" class="btn btn-secondary" onclick="refreshPreview()">🔄 Refresh Preview</button>
             </div>
 
+            <div class="insert-snippets">
+                <span class="snippets-label">Insert Required:</span>
+                <button type="button" class="btn btn-sm btn-snippet" onclick="insertSnippet('unsubscribe')" title="Insert unsubscribe link">🔗 Unsubscribe Link</button>
+                <button type="button" class="btn btn-sm btn-snippet" onclick="insertSnippet('address')" title="Insert physical address">📍 Address</button>
+                <button type="button" class="btn btn-sm btn-snippet" onclick="insertSnippet('privacy')" title="Insert privacy policy link">🔒 Privacy Link</button>
+                <span class="snippets-divider">|</span>
+                <span class="snippets-label">Optional:</span>
+                <button type="button" class="btn btn-sm btn-snippet-opt" onclick="insertSnippet('customer_name')" title="Insert customer name placeholder">👤 Customer Name</button>
+                <button type="button" class="btn btn-sm btn-snippet-opt" onclick="insertSnippet('qr_section')" title="Insert QR code section">📱 QR Section</button>
+            </div>
+
             <div class="form-group">
                 <textarea name="html_content" id="html_content" class="code-editor">{{ html_content }}</textarea>
             </div>
@@ -124,6 +135,53 @@
     margin-bottom: 0.75rem;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid #e5e7eb;
+}
+
+.insert-snippets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 6px;
+}
+
+.snippets-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #0369a1;
+}
+
+.snippets-divider {
+    color: #cbd5e1;
+    margin: 0 0.25rem;
+}
+
+.btn-snippet {
+    background: #dc2626;
+    color: white;
+    border: none;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-snippet:hover {
+    background: #b91c1c;
+}
+
+.btn-snippet-opt {
+    background: #f59e0b;
+    color: white;
+    border: none;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-snippet-opt:hover {
+    background: #d97706;
 }
 
 .code-editor {
@@ -288,6 +346,39 @@
 <script>
 const editor = document.getElementById('html_content');
 const previewFrame = document.getElementById('preview-frame');
+
+// Code snippets for required elements
+const snippets = {
+    unsubscribe: `<a href="{{ unsubscribe_link }}" style="color: #888888; text-decoration: underline;">Unsubscribe</a>`,
+
+    address: `<p style="margin: 10px 0; font-size: 12px; color: #888888;">
+  Fric &amp; Frac<br>
+  1700 West 39th St. Kansas City, MO 64111
+</p>`,
+
+    privacy: `<a href="https://fricandfrac.net/privacy/" style="color: #888888; text-decoration: underline;">Privacy Policy</a>`,
+
+    customer_name: `[[CUSTOMER_NAME]]`,
+
+    qr_section: `<!-- QR_CODE_SECTION -->`
+};
+
+// Insert snippet at cursor position
+function insertSnippet(snippetName) {
+    const snippet = snippets[snippetName];
+    if (!snippet) return;
+
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const text = editor.value;
+
+    editor.value = text.substring(0, start) + snippet + text.substring(end);
+    editor.selectionStart = editor.selectionEnd = start + snippet.length;
+    editor.focus();
+
+    // Trigger preview update
+    updatePreview();
+}
 
 // Initial preview
 updatePreview();
