@@ -95,6 +95,7 @@ def validate(db, token):
             'campaign_id': campaign.id,
             'campaign_name': campaign.name,
             'campaign_subject': campaign.subject,
+            'deal_description': campaign.deal_description,
             'expires_at': qr_code.expires_at.isoformat(),
             'usage_count': qr_code.usage_count,
             'max_usage': qr_code.max_usage

@@ -44,6 +44,18 @@
             <small class="help-text">
                 Each customer will receive a unique QR code for tracking redemptions
             </small>
+
+            <div id="deal-description-group" style="display: none; margin-top: 16px;">
+                <label for="deal_description" style="display: block; margin-bottom: 8px;">
+                    Deal Description <span style="color: #666; font-weight: normal;">(shown to staff when scanning)</span>
+                </label>
+                <textarea id="deal_description" name="deal_description" rows="2"
+                          placeholder="e.g., Buy one burger, get one FREE"
+                          style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+                <small style="color: #666; display: block; margin-top: 4px;">
+                    Staff will see this when they scan the QR code so they know what deal to honor
+                </small>
+            </div>
         </div>
 
         <div class="form-group">
@@ -216,5 +228,11 @@ function updatePreview(templateFilename) {
     // You can add AJAX preview here later
     console.log('Selected template:', templateFilename);
 }
+
+// Show/hide deal description field based on QR code checkbox
+document.getElementById('has_qr_code').addEventListener('change', function(e) {
+    const dealDescGroup = document.getElementById('deal-description-group');
+    dealDescGroup.style.display = e.target.checked ? 'block' : 'none';
+});
 </script>
 {% endblock %}

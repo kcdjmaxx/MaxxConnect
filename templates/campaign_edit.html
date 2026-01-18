@@ -54,6 +54,18 @@
                 <br><strong>Note:</strong> Cannot change QR setting for sent campaigns
                 {% endif %}
             </small>
+
+            <div id="deal-description-group" style="{% if not campaign.has_qr_code %}display: none;{% endif %} margin-top: 16px;">
+                <label for="deal_description" style="display: block; margin-bottom: 8px;">
+                    Deal Description <span style="color: #666; font-weight: normal;">(shown to staff when scanning)</span>
+                </label>
+                <textarea id="deal_description" name="deal_description" rows="2"
+                          placeholder="e.g., Buy one burger, get one FREE"
+                          style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; resize: vertical;">{{ campaign.deal_description or '' }}</textarea>
+                <small style="color: #666; display: block; margin-top: 4px;">
+                    Staff will see this when they scan the QR code so they know what deal to honor
+                </small>
+            </div>
         </div>
 
         <div class="alert alert-info">
@@ -153,4 +165,12 @@
     border: 1px solid #f5c6cb;
 }
 </style>
+
+<script>
+// Show/hide deal description field based on QR code checkbox
+document.getElementById('has_qr_code').addEventListener('change', function(e) {
+    const dealDescGroup = document.getElementById('deal-description-group');
+    dealDescGroup.style.display = e.target.checked ? 'block' : 'none';
+});
+</script>
 {% endblock %}

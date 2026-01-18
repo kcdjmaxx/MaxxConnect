@@ -292,6 +292,29 @@
         color: #1f2937;
     }
 
+    /* Deal section - prominent display */
+    .deal-section {
+        background: #fef3c7;
+        border: 2px solid #f59e0b;
+        border-radius: 8px;
+        padding: 12px;
+        margin: 12px 0;
+    }
+
+    .deal-label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #92400e;
+        margin-bottom: 6px;
+    }
+
+    .deal-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1.3;
+    }
+
     /* Redeem button */
     .redeem-btn {
         width: 100%;
@@ -418,6 +441,10 @@
             <div class="customer-info-row">
                 <span class="info-label">Campaign</span>
                 <span class="info-value" id="info-campaign"></span>
+            </div>
+            <div class="deal-section" id="deal-section" style="display: none;">
+                <div class="deal-label">🎁 DEAL TO HONOR:</div>
+                <div class="deal-value" id="info-deal"></div>
             </div>
             <div class="customer-info-row">
                 <span class="info-label">Expires</span>
@@ -612,6 +639,16 @@
             document.getElementById('info-customer').textContent = result.data.customer_name;
             document.getElementById('info-campaign').textContent = result.data.campaign_name;
             document.getElementById('info-expires').textContent = result.data.expires_at.substring(0, 10);
+
+            // Show deal description if available
+            const dealSection = document.getElementById('deal-section');
+            if (result.data.deal_description) {
+                document.getElementById('info-deal').textContent = result.data.deal_description;
+                dealSection.style.display = 'block';
+            } else {
+                dealSection.style.display = 'none';
+            }
+
             customerInfo.style.display = 'block';
             redeemBtn.style.display = 'block';
 
@@ -713,6 +750,7 @@
     function resetScanner() {
         document.getElementById('result-display').className = 'result-display';
         document.getElementById('manual-token').value = '';
+        document.getElementById('deal-section').style.display = 'none';
         document.body.className = '';
         currentToken = null;
         scanning = true;

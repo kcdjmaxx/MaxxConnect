@@ -723,12 +723,14 @@ def campaign_new():
 
             # Create campaign
             has_qr_code = request.form.get('has_qr_code') == 'on'
+            deal_description = request.form.get('deal_description', '').strip() if has_qr_code else None
             campaign = Campaign(
                 name=name,
                 subject=subject,
                 template_name=template,
                 html_content=html_content,
                 has_qr_code=has_qr_code,
+                deal_description=deal_description,
                 status='draft'
             )
             db.add(campaign)
@@ -857,6 +859,12 @@ def campaign_edit(campaign_id):
 
             if campaign.status != 'sent':
                 campaign.has_qr_code = new_has_qr_code
+
+            # Update deal description (can be updated even for sent campaigns)
+            if new_has_qr_code:
+                campaign.deal_description = request.form.get('deal_description', '').strip() or None
+            else:
+                campaign.deal_description = None
 
             # Re-render template if template changed OR QR setting changed
             if template != campaign.template_name or qr_setting_changed:

@@ -111,6 +111,7 @@ class Campaign(Base):
     template_name = Column(String(255), nullable=True)  # Email template filename
     html_content = Column(Text, nullable=False)
     has_qr_code = Column(Boolean, default=False)  # Whether campaign includes QR codes
+    deal_description = Column(Text, nullable=True)  # Description of deal for staff display
     status = Column(String(50), default='draft')  # draft, sent, sending
     sent_date = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=func.now())
