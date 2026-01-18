@@ -11,7 +11,7 @@ import os
 from datetime import datetime
 
 from backend.database import init_db, get_db
-from backend.models import Customer, Campaign, CampaignSend, QRCode, EmailDelivery
+from backend.models import Customer, Campaign, CampaignSend, QRCode, EmailDelivery, Redemption
 from backend.csv_importer import import_csv, is_valid_email
 from backend.sms_service import format_phone_number, validate_phone_number
 from backend.email_service import send_test_email, render_email_template, send_email
@@ -1670,6 +1670,136 @@ def signup():
 
     # GET request - show form
     return render_template('signup.html')
+
+# =============================================================================
+# QR Code Redemption Routes
+# CRC: crc-RedemptionService.md
+# Seq: seq-qr-redemption.md
+# =============================================================================
+
+@app.route('/redeem/<token>')
+def redeem_landing(token):
+    """
+    Public QR code landing page - shows validity without redeeming
+
+    This is what customers see when they scan their QR code.
+    Staff will use /staff/redeem to actually perform redemptions.
+    """
+    from backend.services.redemption_service import validate as validate_qr
+
+    db = get_db()
+    try:
+        result = validate_qr(db, token)
+        return render_template('redeem_result.html',
+                             result=result,
+                             token=token)
+    finally:
+        db.close()
+
+
+@app.route('/staff/redeem')
+@auth.login_required
+def staff_redeem():
+    """
+    Staff scanner interface with camera QR scanning and manual entry
+
+    Mobile-friendly page for staff to scan and redeem customer QR codes.
+    """
+    return render_template('staff_redeem.html')
+
+
+@app.route('/api/redeem/<token>', methods=['POST'])
+@auth.login_required
+def api_redeem(token):
+    """
+    API endpoint to perform QR code redemption
+
+    Called by staff scanner interface after validation.
+
+    Returns JSON with redemption result.
+    """
+    from backend.services.redemption_service import redeem as redeem_qr
+
+    db = get_db()
+    try:
+        # Get optional metadata
+        data = request.get_json() or {}
+        redeemed_by = data.get('redeemed_by', 'staff')
+        redemption_method = data.get('method', 'scan')
+
+        # Get device/IP info for fraud detection
+        device_info = request.headers.get('User-Agent', '')[:500]
+        ip_address = request.remote_addr
+
+        result = redeem_qr(
+            db,
+            token,
+            redeemed_by=redeemed_by,
+            redemption_method=redemption_method,
+            device_info=device_info,
+            ip_address=ip_address
+        )
+
+        return result.to_dict()
+    finally:
+        db.close()
+
+
+@app.route('/api/validate/<token>')
+@auth.login_required
+def api_validate(token):
+    """
+    API endpoint to validate a QR code without redeeming
+
+    Used by staff scanner to show validity before confirming redemption.
+    """
+    from backend.services.redemption_service import validate as validate_qr
+
+    db = get_db()
+    try:
+        result = validate_qr(db, token)
+        return result.to_dict()
+    finally:
+        db.close()
+
+
+@app.route('/analytics/redemptions')
+@auth.login_required
+def redemption_analytics():
+    """
+    Redemption analytics dashboard
+
+    Shows redemption rates, recent redemptions, peak hours, etc.
+    """
+    from backend.services.redemption_service import (
+        get_redemption_stats,
+        get_campaign_redemption_stats,
+        get_recent_redemptions,
+        get_hourly_redemptions
+    )
+
+    db = get_db()
+    try:
+        # Get overall stats
+        overall_stats = get_redemption_stats(db)
+
+        # Get per-campaign stats
+        campaign_stats = get_campaign_redemption_stats(db)
+
+        # Get recent redemptions
+        recent_redemptions = get_recent_redemptions(db, limit=20)
+
+        # Get hourly distribution
+        hourly_data = get_hourly_redemptions(db, days=30)
+
+        return render_template('redemption_analytics.html',
+                             overall_stats=overall_stats,
+                             campaign_stats=campaign_stats,
+                             recent_redemptions=recent_redemptions,
+                             hourly_data=hourly_data)
+    finally:
+        db.close()
+
 
 if __name__ == '__main__':
     # For development only - use proper WSGI server for production

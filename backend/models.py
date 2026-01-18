@@ -223,3 +223,26 @@ class QRCode(Base):
 
     def __repr__(self):
         return f"<QRCode token={self.token[:20]}... campaign={self.campaign_id}>"
+
+
+class Redemption(Base):
+    """
+    Track QR code redemption events
+
+    CRC: crc-Redemption.md
+    Seq: seq-qr-redemption.md
+    """
+    __tablename__ = 'redemptions'
+
+    id = Column(Integer, primary_key=True)
+    qr_code_id = Column(Integer, ForeignKey('qr_codes.id'), nullable=False, index=True)
+    customer_id = Column(Integer, ForeignKey('customers.id'), nullable=False, index=True)
+    campaign_id = Column(Integer, ForeignKey('campaigns.id'), nullable=False, index=True)
+    redeemed_at = Column(DateTime, default=func.now(), nullable=False)
+    redeemed_by = Column(String(255), nullable=True)  # Staff identifier
+    redemption_method = Column(String(50), default='scan')  # 'scan' or 'manual'
+    device_info = Column(String(500), nullable=True)  # User agent for fraud detection
+    ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6 for fraud detection
+
+    def __repr__(self):
+        return f"<Redemption qr_code={self.qr_code_id} customer={self.customer_id} at={self.redeemed_at}>"

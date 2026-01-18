@@ -13,9 +13,9 @@
             <li><a href="/contacts" {% if request.path == '/contacts' %}class="active"{% endif %}>👥 Contacts</a></li>
             <li><a href="/campaigns" {% if request.path.startswith('/campaign') and not request.path.startswith('/template') %}class="active"{% endif %}>📧 Campaigns</a></li>
             <li><a href="/templates" {% if request.path.startswith('/template') %}class="active"{% endif %}>📝 Templates</a></li>
+            <li><a href="/staff/redeem" {% if request.path == '/staff/redeem' %}class="active"{% endif %}>📱 Redeem QR</a></li>
+            <li><a href="/analytics/redemptions" {% if request.path == '/analytics/redemptions' %}class="active"{% endif %}>📈 Analytics</a></li>
             <li><a href="/import" {% if request.path == '/import' %}class="active"{% endif %}>📤 Import</a></li>
-            <li><a href="/preview" {% if request.path == '/preview' %}class="active"{% endif %}>✉️ Email Test</a></li>
-            <li><a href="/sms-preview" {% if request.path == '/sms-preview' %}class="active"{% endif %}>💬 SMS Test</a></li>
         </ul>
     </nav>
 

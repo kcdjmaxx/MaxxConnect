@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Redemption Analytics{% endblock %}
+
+{% block content %}
+<h1>Redemption Analytics</h1>
+
+<!-- Overall Stats -->
+<div class="stats">
+    <div class="stat-card">
+        <h3>{{ overall_stats.total_codes }}</h3>
+        <p>Total QR Codes</p>
+    </div>
+    <div class="stat-card" style="border-left-color: #10b981;">
+        <h3>{{ overall_stats.redeemed_codes }}</h3>
+        <p>Codes Redeemed</p>
+    </div>
+    <div class="stat-card" style="border-left-color: #f59e0b;">
+        <h3>{{ overall_stats.redemption_rate }}%</h3>
+        <p>Redemption Rate</p>
+    </div>
+    <div class="stat-card" style="border-left-color: #8b5cf6;">
+        <h3>{{ overall_stats.total_redemptions }}</h3>
+        <p>Total Redemptions</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <!-- Campaign Performance -->
+    <div class="card">
+        <h2>Campaign Performance</h2>
+        {% if campaign_stats %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Campaign</th>
+                    <th>Sent</th>
+                    <th>Redeemed</th>
+                    <th>Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for campaign in campaign_stats %}
+                <tr>
+                    <td>
+                        <strong>{{ campaign.campaign_name }}</strong>
+                        {% if campaign.sent_date %}
+                        <br><small style="color: #6b7280;">{{ campaign.sent_date.strftime('%b %d, %Y') }}</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ campaign.total_codes }}</td>
+                    <td>{{ campaign.redeemed_codes }}</td>
+                    <td>
+                        <span class="badge {% if campaign.redemption_rate >= 10 %}badge-sent{% elif campaign.redemption_rate >= 5 %}badge-scheduled{% else %}badge-draft{% endif %}">
+                            {{ campaign.redemption_rate }}%
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: #6b7280; text-align: center; padding: 2rem;">No QR code campaigns yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Peak Hours Chart -->
+    <div class="card">
+        <h2>Redemptions by Hour (Last 30 Days)</h2>
+        <div id="hourly-chart" style="height: 250px; display: flex; align-items: flex-end; gap: 4px; padding: 1rem 0;">
+            {% set max_hour = hourly_data.values()|max if hourly_data.values()|max > 0 else 1 %}
+            {% for hour in range(24) %}
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                <div style="width: 100%; background: #2563eb; border-radius: 4px 4px 0 0; height: {{ (hourly_data[hour] / max_hour * 200)|int }}px; min-height: {% if hourly_data[hour] > 0 %}4{% else %}0{% endif %}px;" title="{{ hourly_data[hour] }} redemptions"></div>
+                <span style="font-size: 0.65rem; color: #6b7280; margin-top: 4px;">{{ hour }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        <p style="text-align: center; font-size: 0.85rem; color: #6b7280;">Hour of Day (24h format)</p>
+    </div>
+</div>
+
+<!-- Recent Redemptions -->
+<div class="card" style="margin-top: 2rem;">
+    <h2>Recent Redemptions</h2>
+    {% if recent_redemptions %}
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Customer</th>
+                <th>Campaign</th>
+                <th>Method</th>
+                <th>Staff</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for redemption in recent_redemptions %}
+            <tr>
+                <td>
+                    {{ redemption.redeemed_at.strftime('%b %d, %Y') }}
+                    <br><small style="color: #6b7280;">{{ redemption.redeemed_at.strftime('%I:%M %p') }}</small>
+                </td>
+                <td>
+                    <strong>{{ redemption.customer_name }}</strong>
+                    <br><small style="color: #6b7280;">{{ redemption.customer_email }}</small>
+                </td>
+                <td>{{ redemption.campaign_name }}</td>
+                <td>
+                    <span class="badge {% if redemption.redemption_method == 'scan' %}badge-sent{% else %}badge-scheduled{% endif %}">
+                        {{ redemption.redemption_method }}
+                    </span>
+                </td>
+                <td>{{ redemption.redeemed_by or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #6b7280; text-align: center; padding: 2rem;">No redemptions yet.</p>
+    {% endif %}
+</div>
+
+<style>
+    @media (max-width: 768px) {
+        div[style*="grid-template-columns: 1fr 1fr"] {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+{% endblock %}

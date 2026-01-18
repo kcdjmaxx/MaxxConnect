@@ -1,0 +1,623 @@
+{% extends "base.html" %}
+
+{% block title %}QR Scanner{% endblock %}
+
+{% block content %}
+<style>
+    .scanner-container {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .scanner-header {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .scanner-header h1 {
+        font-size: 1.75rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Camera section */
+    .camera-section {
+        background: #000;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    #video-container {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1;
+    }
+
+    #video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    #canvas {
+        display: none;
+    }
+
+    .scan-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 200px;
+        height: 200px;
+        border: 3px solid rgba(255,255,255,0.8);
+        border-radius: 12px;
+        box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+    }
+
+    .camera-error {
+        padding: 3rem 1rem;
+        text-align: center;
+        color: #fff;
+        background: #1f2937;
+    }
+
+    /* Manual entry */
+    .manual-entry {
+        background: #f9fafb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .manual-entry h3 {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+        color: #6b7280;
+    }
+
+    .manual-input-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .manual-input-group input {
+        flex: 1;
+        padding: 0.875rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-family: monospace;
+    }
+
+    .manual-input-group button {
+        padding: 0.875rem 1.5rem;
+        white-space: nowrap;
+    }
+
+    /* Result display */
+    .result-display {
+        display: none;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        margin-bottom: 1.5rem;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    .result-display.valid {
+        display: block;
+        background: #d1fae5;
+        border: 3px solid #10b981;
+    }
+
+    .result-display.invalid {
+        display: block;
+        background: #fee2e2;
+        border: 3px solid #ef4444;
+    }
+
+    .result-display.redeemed {
+        display: block;
+        background: #dbeafe;
+        border: 3px solid #2563eb;
+    }
+
+    .result-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .result-display.valid .result-icon { color: #059669; }
+    .result-display.invalid .result-icon { color: #dc2626; }
+    .result-display.redeemed .result-icon { color: #2563eb; }
+
+    .result-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .result-display.valid .result-title { color: #059669; }
+    .result-display.invalid .result-title { color: #dc2626; }
+    .result-display.redeemed .result-title { color: #1d4ed8; }
+
+    .result-message {
+        color: #6b7280;
+        font-size: 1.1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Customer info card */
+    .customer-info {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: left;
+        margin-bottom: 1.5rem;
+    }
+
+    .customer-info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .customer-info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        color: #6b7280;
+        font-size: 0.9rem;
+    }
+
+    .info-value {
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    /* Redeem button */
+    .redeem-btn {
+        width: 100%;
+        padding: 1.25rem;
+        font-size: 1.25rem;
+        background: #10b981;
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .redeem-btn:hover {
+        background: #059669;
+        transform: translateY(-2px);
+    }
+
+    .redeem-btn:active {
+        transform: translateY(0);
+    }
+
+    .redeem-btn:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Reset button */
+    .reset-btn {
+        width: 100%;
+        padding: 1rem;
+        margin-top: 1rem;
+        background: #6b7280;
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .reset-btn:hover {
+        background: #4b5563;
+    }
+
+    /* Status indicator */
+    .status-bar {
+        background: #1f2937;
+        color: white;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+
+    .status-bar.scanning {
+        background: #2563eb;
+    }
+
+    .status-bar.processing {
+        background: #f59e0b;
+    }
+</style>
+
+<div class="scanner-container">
+    <div class="scanner-header">
+        <h1>QR Code Scanner</h1>
+        <p style="color: #6b7280;">Scan customer QR codes to redeem offers</p>
+    </div>
+
+    <div class="status-bar scanning" id="status-bar">
+        Ready to scan
+    </div>
+
+    <!-- Camera section -->
+    <div class="camera-section" id="camera-section">
+        <div id="video-container">
+            <video id="video" playsinline></video>
+            <div class="scan-overlay"></div>
+        </div>
+        <div class="camera-error" id="camera-error" style="display: none;">
+            <p>Camera not available</p>
+            <p style="font-size: 0.9rem; margin-top: 0.5rem;">Use manual entry below</p>
+        </div>
+    </div>
+
+    <!-- Manual entry -->
+    <div class="manual-entry">
+        <h3>Or enter code manually:</h3>
+        <div class="manual-input-group">
+            <input type="text" id="manual-token" placeholder="Enter QR token...">
+            <button onclick="validateManualToken()" id="manual-btn">Check</button>
+        </div>
+    </div>
+
+    <!-- Result display -->
+    <div class="result-display" id="result-display">
+        <div class="result-icon" id="result-icon"></div>
+        <div class="result-title" id="result-title"></div>
+        <div class="result-message" id="result-message"></div>
+
+        <div class="customer-info" id="customer-info" style="display: none;">
+            <div class="customer-info-row">
+                <span class="info-label">Customer</span>
+                <span class="info-value" id="info-customer"></span>
+            </div>
+            <div class="customer-info-row">
+                <span class="info-label">Campaign</span>
+                <span class="info-value" id="info-campaign"></span>
+            </div>
+            <div class="customer-info-row">
+                <span class="info-label">Expires</span>
+                <span class="info-value" id="info-expires"></span>
+            </div>
+        </div>
+
+        <button class="redeem-btn" id="redeem-btn" style="display: none;" onclick="performRedemption()">
+            REDEEM NOW
+        </button>
+
+        <button class="reset-btn" onclick="resetScanner()">
+            Scan Another Code
+        </button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+</div>
+
+<!-- jsQR library -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+<script>
+    let video = document.getElementById('video');
+    let canvas = document.getElementById('canvas');
+    let ctx = canvas.getContext('2d');
+    let scanning = true;
+    let currentToken = null;
+    let audioContext = null;
+
+    // Initialize audio context on first user interaction
+    function initAudio() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    // Generate tone using Web Audio API
+    function playTone(frequency, duration, type = 'sine') {
+        initAudio();
+        if (!audioContext) return;
+
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+
+        // Envelope for smooth sound
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.01);
+        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
+
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+    }
+
+    // Play success sound (ascending tones)
+    function playSuccessSound() {
+        initAudio();
+        if (!audioContext) return;
+        playTone(523.25, 0.15); // C5
+        setTimeout(() => playTone(659.25, 0.15), 100); // E5
+        setTimeout(() => playTone(783.99, 0.3), 200); // G5
+    }
+
+    // Play error sound (descending tones)
+    function playErrorSound() {
+        initAudio();
+        if (!audioContext) return;
+        playTone(440, 0.2, 'square'); // A4
+        setTimeout(() => playTone(349.23, 0.3, 'square'), 150); // F4
+    }
+
+    // Initialize camera
+    async function initCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
+            video.srcObject = stream;
+            video.play();
+            requestAnimationFrame(scanFrame);
+        } catch (err) {
+            console.error('Camera error:', err);
+            document.getElementById('video-container').style.display = 'none';
+            document.getElementById('camera-error').style.display = 'block';
+        }
+    }
+
+    // Scan for QR codes
+    function scanFrame() {
+        if (!scanning) {
+            requestAnimationFrame(scanFrame);
+            return;
+        }
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+            if (code) {
+                // Extract token from URL
+                const token = extractToken(code.data);
+                if (token && token !== currentToken) {
+                    scanning = false;
+                    currentToken = token;
+                    validateToken(token);
+                }
+            }
+        }
+
+        requestAnimationFrame(scanFrame);
+    }
+
+    // Extract token from redemption URL
+    function extractToken(data) {
+        // Handle full URL or just token
+        const match = data.match(/\/redeem\/([^\/\?]+)/);
+        if (match) return match[1];
+        // If no URL pattern, assume it's the token itself
+        if (data.includes('-') && data.length > 20) return data;
+        return null;
+    }
+
+    // Validate token via API
+    async function validateToken(token) {
+        updateStatus('Validating...', 'processing');
+
+        try {
+            const response = await fetch(`/api/validate/${token}`);
+            const result = await response.json();
+
+            showResult(result, token);
+        } catch (err) {
+            showError('Network error. Please try again.');
+        }
+    }
+
+    // Manual token entry
+    function validateManualToken() {
+        const input = document.getElementById('manual-token');
+        const token = input.value.trim();
+
+        if (!token) {
+            alert('Please enter a token');
+            return;
+        }
+
+        // Extract token if URL was pasted
+        const extracted = extractToken(token) || token;
+        scanning = false;
+        currentToken = extracted;
+        validateToken(extracted);
+    }
+
+    // Show validation result
+    function showResult(result, token) {
+        const display = document.getElementById('result-display');
+        const icon = document.getElementById('result-icon');
+        const title = document.getElementById('result-title');
+        const message = document.getElementById('result-message');
+        const customerInfo = document.getElementById('customer-info');
+        const redeemBtn = document.getElementById('redeem-btn');
+
+        display.className = 'result-display';
+        customerInfo.style.display = 'none';
+        redeemBtn.style.display = 'none';
+
+        if (result.success) {
+            display.classList.add('valid');
+            icon.innerHTML = '&#10003;';
+            title.textContent = 'VALID';
+            message.textContent = result.message;
+
+            // Show customer info
+            document.getElementById('info-customer').textContent = result.data.customer_name;
+            document.getElementById('info-campaign').textContent = result.data.campaign_name;
+            document.getElementById('info-expires').textContent = result.data.expires_at.substring(0, 10);
+            customerInfo.style.display = 'block';
+            redeemBtn.style.display = 'block';
+
+            playSound('success');
+            speak('Valid code for ' + result.data.customer_name);
+            updateStatus('Valid - Ready to redeem', 'scanning');
+        } else {
+            display.classList.add('invalid');
+            icon.innerHTML = '&#10007;';
+
+            if (result.status === 'expired') {
+                title.textContent = 'EXPIRED';
+            } else if (result.status === 'already_used') {
+                title.textContent = 'ALREADY USED';
+            } else {
+                title.textContent = 'INVALID';
+            }
+
+            message.textContent = result.message;
+            playSound('error');
+            speak(title.textContent);
+            updateStatus('Invalid code', 'scanning');
+        }
+    }
+
+    // Perform redemption
+    async function performRedemption() {
+        if (!currentToken) return;
+
+        const btn = document.getElementById('redeem-btn');
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+        updateStatus('Redeeming...', 'processing');
+
+        try {
+            const response = await fetch(`/api/redeem/${currentToken}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ method: 'scan' })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showRedeemed(result);
+                playSound('success');
+                speak('Success! Redeemed.');
+                updateStatus('Redeemed successfully!', 'scanning');
+            } else {
+                showError(result.message);
+                playSound('error');
+            }
+        } catch (err) {
+            showError('Network error. Please try again.');
+            playSound('error');
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'REDEEM NOW';
+    }
+
+    // Show redeemed state
+    function showRedeemed(result) {
+        const display = document.getElementById('result-display');
+        const icon = document.getElementById('result-icon');
+        const title = document.getElementById('result-title');
+        const message = document.getElementById('result-message');
+
+        display.className = 'result-display redeemed';
+        icon.innerHTML = '&#10003;';
+        title.textContent = 'REDEEMED!';
+        message.textContent = 'Code successfully redeemed for ' + result.data.customer_name;
+
+        document.getElementById('redeem-btn').style.display = 'none';
+    }
+
+    // Show error
+    function showError(msg) {
+        const display = document.getElementById('result-display');
+        const icon = document.getElementById('result-icon');
+        const title = document.getElementById('result-title');
+        const message = document.getElementById('result-message');
+
+        display.className = 'result-display invalid';
+        icon.innerHTML = '&#10007;';
+        title.textContent = 'ERROR';
+        message.textContent = msg;
+
+        document.getElementById('customer-info').style.display = 'none';
+        document.getElementById('redeem-btn').style.display = 'none';
+
+        updateStatus('Error occurred', 'scanning');
+    }
+
+    // Reset scanner
+    function resetScanner() {
+        document.getElementById('result-display').className = 'result-display';
+        document.getElementById('manual-token').value = '';
+        currentToken = null;
+        scanning = true;
+        updateStatus('Ready to scan', 'scanning');
+    }
+
+    // Update status bar
+    function updateStatus(text, state) {
+        const bar = document.getElementById('status-bar');
+        bar.textContent = text;
+        bar.className = 'status-bar ' + state;
+    }
+
+    // Play sound using Web Audio API
+    function playSound(type) {
+        if (type === 'success') {
+            playSuccessSound();
+        } else if (type === 'error') {
+            playErrorSound();
+        }
+    }
+
+    // Text-to-speech
+    function speak(text) {
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 1.1;
+            utterance.pitch = 1;
+            speechSynthesis.speak(utterance);
+        }
+    }
+
+    // Allow Enter key for manual entry
+    document.getElementById('manual-token').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            validateManualToken();
+        }
+    });
+
+    // Initialize
+    initCamera();
+</script>
+{% endblock %}

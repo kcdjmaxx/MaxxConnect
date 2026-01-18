@@ -26,4 +26,6 @@ def get_db():
 
 def init_db():
     """Initialize database tables"""
+    # Import all models to register them with Base.metadata
+    from backend.models import Customer, Campaign, CampaignSend, QRCode, EmailDelivery, Redemption
     Base.metadata.create_all(bind=engine)
