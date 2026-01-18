@@ -1759,17 +1759,28 @@ def staff_login():
     """
     Staff login page for QR scanner.
     Sets a long-lived cookie on successful login.
+
+    Accepts either:
+    - STAFF_USERNAME / STAFF_PASSWORD (scanner-only access)
+    - ADMIN_USERNAME / ADMIN_PASSWORD (full access, fallback)
     """
     error = None
     if request.method == 'POST':
         username = request.form.get('username', '')
         password = request.form.get('password', '')
 
-        # Use same credentials as admin auth
+        # Check staff credentials first (scanner-only access)
+        staff_user = os.getenv('STAFF_USERNAME')
+        staff_pass = os.getenv('STAFF_PASSWORD')
+
+        # Fall back to admin credentials if staff not configured
         admin_user = os.getenv('ADMIN_USERNAME', 'admin')
         admin_pass = os.getenv('ADMIN_PASSWORD', '')
 
-        if username == admin_user and password == admin_pass and admin_pass:
+        is_valid_staff = staff_user and staff_pass and username == staff_user and password == staff_pass
+        is_valid_admin = admin_pass and username == admin_user and password == admin_pass
+
+        if is_valid_staff or is_valid_admin:
             # Create response with redirect
             next_url = request.args.get('next', url_for('staff_redeem'))
             response = make_response(redirect(next_url))
