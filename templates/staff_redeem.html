@@ -31,6 +31,15 @@
             color: white;
             min-height: 100vh;
             overflow-x: hidden;
+            transition: background 0.3s ease;
+        }
+
+        body.state-valid {
+            background: #059669;
+        }
+
+        body.state-invalid {
+            background: #dc2626;
         }
 
         .back-header {
@@ -594,6 +603,7 @@
 
         if (result.success) {
             display.classList.add('valid');
+            document.body.className = 'state-valid';
             icon.innerHTML = '&#10003;';
             title.textContent = 'VALID';
             message.textContent = result.message;
@@ -610,6 +620,7 @@
             updateStatus('Valid - Ready to redeem', 'scanning');
         } else {
             display.classList.add('invalid');
+            document.body.className = 'state-invalid';
             icon.innerHTML = '&#10007;';
 
             if (result.status === 'expired') {
@@ -671,6 +682,7 @@
         const message = document.getElementById('result-message');
 
         display.className = 'result-display redeemed';
+        document.body.className = 'state-valid';
         icon.innerHTML = '&#10003;';
         title.textContent = 'REDEEMED!';
         message.textContent = 'Code successfully redeemed for ' + result.data.customer_name;
@@ -686,6 +698,7 @@
         const message = document.getElementById('result-message');
 
         display.className = 'result-display invalid';
+        document.body.className = 'state-invalid';
         icon.innerHTML = '&#10007;';
         title.textContent = 'ERROR';
         message.textContent = msg;
@@ -700,6 +713,7 @@
     function resetScanner() {
         document.getElementById('result-display').className = 'result-display';
         document.getElementById('manual-token').value = '';
+        document.body.className = '';
         currentToken = null;
         scanning = true;
         updateStatus('Ready to scan', 'scanning');
