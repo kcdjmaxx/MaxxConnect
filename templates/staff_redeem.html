@@ -127,6 +127,41 @@
         background: #1f2937;
     }
 
+    .camera-start {
+        padding: 3rem 1rem;
+        text-align: center;
+        background: #1f2937;
+    }
+
+    .start-scan-btn {
+        padding: 1.25rem 2.5rem;
+        font-size: 1.25rem;
+        background: #10b981;
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .start-scan-btn:hover {
+        background: #059669;
+        transform: scale(1.02);
+    }
+
+    .start-scan-btn:active {
+        transform: scale(0.98);
+    }
+
+    #video-container {
+        display: none;
+    }
+
+    #video-container.active {
+        display: block;
+    }
+
     /* Manual entry */
     .manual-entry {
         background: #2d3748;
@@ -339,6 +374,12 @@
             <video id="video" playsinline></video>
             <div class="scan-overlay"></div>
         </div>
+        <div class="camera-start" id="camera-start">
+            <button onclick="startCamera()" class="start-scan-btn">Start Scanner</button>
+            <p style="font-size: 0.85rem; margin-top: 1rem; color: #a0aec0;">
+                Tip: Add to Home Screen first<br>(Share → Add to Home Screen)
+            </p>
+        </div>
         <div class="camera-error" id="camera-error" style="display: none;">
             <p>Camera not available</p>
             <p style="font-size: 0.9rem; margin-top: 0.5rem;">Use manual entry below</p>
@@ -446,18 +487,24 @@
         setTimeout(() => playTone(349.23, 0.3, 'square'), 150); // F4
     }
 
-    // Initialize camera
-    async function initCamera() {
+    // Start camera (called by button click)
+    async function startCamera() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: 'environment' }
             });
             video.srcObject = stream;
             video.play();
+
+            // Hide start button, show video
+            document.getElementById('camera-start').style.display = 'none';
+            document.getElementById('video-container').classList.add('active');
+            updateStatus('Scanning...', 'scanning');
+
             requestAnimationFrame(scanFrame);
         } catch (err) {
             console.error('Camera error:', err);
-            document.getElementById('video-container').style.display = 'none';
+            document.getElementById('camera-start').style.display = 'none';
             document.getElementById('camera-error').style.display = 'block';
         }
     }
@@ -691,8 +738,8 @@
         }
     });
 
-    // Initialize
-    initCamera();
+    // Camera starts on button click, not automatically
+    // This allows users to add to home screen without camera permission issues
 </script>
 </body>
 </html>
