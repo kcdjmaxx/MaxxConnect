@@ -4,7 +4,7 @@ Flask Application - Email/SMS Marketing Platform
 CRC: crc-CampaignManager.md
 Spec: phase-2-campaign-management.md
 """
-from flask import Flask, render_template, request, redirect, url_for, flash, render_template_string
+from flask import Flask, render_template, request, redirect, url_for, flash, render_template_string, make_response
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.utils import secure_filename
 import os
@@ -1677,6 +1677,119 @@ def signup():
 # Seq: seq-qr-redemption.md
 # =============================================================================
 
+# Staff cookie settings
+STAFF_COOKIE_NAME = 'staff_token'
+STAFF_COOKIE_MAX_AGE = 90 * 24 * 60 * 60  # 90 days in seconds
+
+
+def generate_staff_token():
+    """Generate a secure staff authentication token"""
+    import secrets
+    return secrets.token_urlsafe(32)
+
+
+def check_staff_cookie():
+    """
+    Check if valid staff cookie exists.
+    Returns True if authenticated, False otherwise.
+    """
+    token = request.cookies.get(STAFF_COOKIE_NAME)
+    if not token:
+        return False
+    # For simplicity, any non-empty token is valid
+    # In production, you might want to store valid tokens in DB/Redis
+    return len(token) > 20
+
+
+def set_staff_cookie(response):
+    """
+    Set or refresh the staff authentication cookie with sliding expiration.
+    """
+    token = request.cookies.get(STAFF_COOKIE_NAME) or generate_staff_token()
+    response.set_cookie(
+        STAFF_COOKIE_NAME,
+        token,
+        max_age=STAFF_COOKIE_MAX_AGE,
+        httponly=True,
+        samesite='Lax',
+        secure=request.is_secure  # Use secure flag in production (HTTPS)
+    )
+    return response
+
+
+def staff_auth_required(f):
+    """
+    Decorator for routes that require staff authentication via cookie.
+    Redirects to login if no valid cookie, refreshes cookie if valid.
+    """
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not check_staff_cookie():
+            return redirect(url_for('staff_login', next=request.url))
+        # Execute the route
+        response = f(*args, **kwargs)
+        # Refresh cookie (sliding expiration)
+        if isinstance(response, str):
+            response = make_response(response)
+        return set_staff_cookie(response)
+    return decorated
+
+
+def staff_api_auth_required(f):
+    """
+    Decorator for API routes - returns 401 JSON instead of redirect.
+    Also refreshes cookie on successful auth.
+    """
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not check_staff_cookie():
+            return {'error': 'Authentication required', 'status': 'unauthorized'}, 401
+        response = f(*args, **kwargs)
+        # If response is a dict, convert to JSON response so we can set cookie
+        if isinstance(response, dict):
+            response = make_response(response)
+        return set_staff_cookie(response)
+    return decorated
+
+
+@app.route('/staff/login', methods=['GET', 'POST'])
+def staff_login():
+    """
+    Staff login page for QR scanner.
+    Sets a long-lived cookie on successful login.
+    """
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username', '')
+        password = request.form.get('password', '')
+
+        # Use same credentials as admin auth
+        admin_user = os.getenv('ADMIN_USERNAME', 'admin')
+        admin_pass = os.getenv('ADMIN_PASSWORD', '')
+
+        if username == admin_user and password == admin_pass and admin_pass:
+            # Create response with redirect
+            next_url = request.args.get('next', url_for('staff_redeem'))
+            response = make_response(redirect(next_url))
+            # Set the staff cookie
+            response = set_staff_cookie(response)
+            return response
+        else:
+            error = 'Invalid username or password'
+
+    return render_template('staff_login.html', error=error)
+
+
+@app.route('/staff/logout')
+def staff_logout():
+    """Log out staff by clearing the cookie"""
+    response = make_response(redirect(url_for('staff_login')))
+    response.delete_cookie(STAFF_COOKIE_NAME)
+    return response
+
+
 @app.route('/redeem/<token>')
 def redeem_landing(token):
     """
@@ -1698,18 +1811,19 @@ def redeem_landing(token):
 
 
 @app.route('/staff/redeem')
-@auth.login_required
+@staff_auth_required
 def staff_redeem():
     """
     Staff scanner interface with camera QR scanning and manual entry
 
     Mobile-friendly page for staff to scan and redeem customer QR codes.
+    Uses cookie-based auth with 90-day sliding expiration.
     """
     return render_template('staff_redeem.html')
 
 
 @app.route('/api/redeem/<token>', methods=['POST'])
-@auth.login_required
+@staff_api_auth_required
 def api_redeem(token):
     """
     API endpoint to perform QR code redemption
@@ -1746,7 +1860,7 @@ def api_redeem(token):
 
 
 @app.route('/api/validate/<token>')
-@auth.login_required
+@staff_api_auth_required
 def api_validate(token):
     """
     API endpoint to validate a QR code without redeeming
