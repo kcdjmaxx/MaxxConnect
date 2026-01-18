@@ -177,6 +177,52 @@ Complete CRUD system for email campaigns with template selection, audience targe
   - Development: Images converted to base64 via ImageHandler
   - Production: External URLs to Railway static files
 
+## QR Code Redemption System
+
+**Overview:**
+Complete system for staff to validate and redeem customer QR codes via mobile-friendly web interface.
+
+**Staff Scanner Interface** (`/staff/redeem`)
+- Mobile-optimized PWA (can be added to iOS home screen)
+- Camera-based QR scanning using jsQR library
+- Manual token entry fallback
+- Audio feedback: ascending tones for success, descending for errors
+- Voice feedback via Web Speech API ("Valid code for [name]", "Success!")
+- Large VALID (green) / INVALID (red) visual display
+- Shows customer name, campaign info before redemption
+- "REDEEM NOW" confirmation button
+
+**Adding to iOS Home Screen:**
+1. Open `/staff/redeem` in Safari
+2. Tap Share button → "Add to Home Screen"
+3. App launches in standalone mode (no Safari UI)
+
+**Redemption Flow:**
+```
+Customer shows QR → Staff scans → Validate → Show info → Staff confirms → Redeem
+```
+
+**Routes:**
+- `GET /redeem/<token>` - Public landing page (customer sees validity)
+- `GET /staff/redeem` - Staff scanner interface (requires auth)
+- `POST /api/redeem/<token>` - Perform redemption (requires auth)
+- `GET /api/validate/<token>` - Validate without redeeming (requires auth)
+- `GET /analytics/redemptions` - Redemption analytics dashboard (requires auth)
+
+**Database Models:**
+- `Redemption` - Tracks each redemption event with:
+  - qr_code_id, customer_id, campaign_id (foreign keys)
+  - redeemed_at (timestamp)
+  - redeemed_by (staff identifier)
+  - redemption_method ('scan' or 'manual')
+  - device_info, ip_address (fraud detection)
+
+**Analytics Dashboard** (`/analytics/redemptions`)
+- Overall stats: total codes, redeemed, redemption rate
+- Per-campaign breakdown with rates
+- Hourly distribution chart (last 30 days)
+- Recent redemptions table
+
 ## Critical Legal Requirements
 
 **Email:**
@@ -269,21 +315,30 @@ Required setup:
   - Base64 encoding for development ✓
   - External URLs for production ✓
 
-**Phase 2 - QR Code & Redemption:** (IN PROGRESS)
+**Phase 2 - QR Code Generation:** ✅ COMPLETE
 - Async email/SMS queue with Celery + Redis ✓
 - Rate limiting (100 email/min, 10 SMS/min) ✓
 - Progress tracking UI with live polling ✓
-- QR code generation with unique tokens
-- Customer segmentation/tagging
-- Campaign analytics and tracking
+- QR code generation with unique tokens ✓
+- QR code CID embedding for Gmail compatibility ✓
+- Template management system ✓
+- Customer segmentation/tagging (partial) ✓
 
-**Phase 3 - Redemption System:**
-- iOS QR scanner app
-- Redemption validation API
-- Usage tracking (prevent multi-redemption)
-- Analytics dashboard
+**Phase 3 - Redemption System:** ✅ COMPLETE
+- Staff QR scanner web app (PWA) ✓
+  - Camera-based QR scanning with jsQR ✓
+  - Manual token entry fallback ✓
+  - Audio feedback (Web Audio API tones) ✓
+  - Voice feedback (Web Speech API) ✓
+  - iOS home screen support (PWA meta tags) ✓
+- Redemption validation API ✓
+- Usage tracking (prevent multi-redemption) ✓
+- Redemption analytics dashboard ✓
+  - Redemption rates by campaign ✓
+  - Hourly distribution chart ✓
+  - Recent redemptions table ✓
 
-**Phase 4 - Advanced Features:**
+**Phase 4 - Advanced Features:** (PLANNED)
 - Bounce handling automation
 - Redemption report exports
 - A/B testing infrastructure

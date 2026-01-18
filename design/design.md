@@ -49,9 +49,24 @@ Email/SMS marketing platform with:
 **Purpose:** Organize customers into targetable groups
 **Design Elements:** crc-Customer.md, crc-SegmentManager.md
 
-### Analytics (PLANNED - Phase 3)
-**Purpose:** Track campaign performance metrics
-**Design Elements:** crc-CampaignAnalytics.md
+### QR Redemption System (IMPLEMENTED)
+**Purpose:** Staff-facing QR code validation and redemption
+**Design Elements:** crc-Redemption.md, crc-RedemptionService.md, seq-qr-redemption.md
+**Features:**
+- Staff scanner PWA with camera QR scanning
+- Manual token entry fallback
+- Audio/voice feedback on scan
+- Redemption analytics dashboard
+- Fraud detection (device info, IP tracking)
+- iOS home screen support
+
+### Analytics (IMPLEMENTED)
+**Purpose:** Track campaign and redemption performance metrics
+**Design Elements:** crc-CampaignAnalytics.md, crc-RedemptionService.md
+**Features:**
+- Redemption rates by campaign
+- Hourly redemption distribution
+- Recent redemptions table
 
 ### List Hygiene (PLANNED - Phase 4)
 **Purpose:** Maintain clean subscriber list
@@ -137,9 +152,13 @@ Email/SMS marketing platform with:
 - crc-RateLimiter.md
   - [x] backend/services/rate_limiter.py
 - crc-CampaignAnalytics.md
-  - [ ] backend/services/campaign_analytics.py - Phase 3
+  - [x] app.py (redemption_analytics route)
 - crc-TemplateProcessor.md
   - [x] backend/services/template_processor.py
+- crc-Redemption.md
+  - [x] backend/models.py (Redemption class)
+- crc-RedemptionService.md
+  - [x] backend/services/redemption_service.py
 
 ### Sequences
 - seq-csv-import.md
@@ -169,7 +188,10 @@ Email/SMS marketing platform with:
 - seq-segment-manage.md
   - [ ] Phase 2
 - seq-campaign-analytics.md
-  - [ ] Phase 3
+  - [x] app.py (redemption_analytics)
+- seq-qr-redemption.md
+  - [x] app.py (redeem routes)
+  - [x] backend/services/redemption_service.py
 - seq-template-import.md
   - [x] app.py (template routes)
   - [x] backend/services/template_processor.py
@@ -184,7 +206,11 @@ Email/SMS marketing platform with:
 - ui-campaign-send-confirm.md
   - [x] templates/campaign_send_confirm.html
 - ui-campaign-analytics.md
-  - [ ] Phase 3
+  - [x] templates/redemption_analytics.html
+- ui-staff-scanner.md
+  - [x] templates/staff_redeem.html
+- ui-redeem-result.md
+  - [x] templates/redeem_result.html
 - ui-segment-list.md
   - [ ] Phase 2
 - ui-qr-display.md
@@ -222,19 +248,30 @@ Email/SMS marketing platform with:
 - [x] crc-EmailService.md created for CID attachment support
 
 ### Deferred
-- seq-qr-validate.md: Deferred to Phase 3 (redemption scanning)
 - Webhook handling for bounces: Phase 4
-- ui-qr-display.md: QR display in iOS scanner app (Phase 3)
+- ui-qr-display.md: iOS native scanner app (web PWA implemented instead)
 
 ## Summary
 
-**Status:** Phase 2.5 Complete (Template Management Implemented)
-- CRC Cards: 15 (14 implemented, 1 planned)
-- Sequences: 13 (12 implemented, 1 planned)
-- UI Specs: 10 (7 implemented, 3 planned)
+**Status:** Phase 3 Complete (QR Redemption System Implemented)
+- CRC Cards: 17 (16 implemented, 1 planned)
+- Sequences: 14 (13 implemented, 1 planned)
+- UI Specs: 13 (10 implemented, 3 planned)
 - Test Designs: 6 (complete)
 
 **Recent Updates:**
+- **QR Redemption System (Jan 17, 2026):**
+  - Added `Redemption` model for tracking redemption events
+  - Added `RedemptionService` for validate/redeem operations
+  - Staff scanner PWA at `/staff/redeem`:
+    - Camera QR scanning with jsQR library
+    - Manual token entry fallback
+    - Audio feedback via Web Audio API
+    - Voice feedback via Web Speech API
+    - iOS home screen support (PWA meta tags)
+  - Public landing page at `/redeem/<token>`
+  - Redemption analytics dashboard at `/analytics/redemptions`
+  - Navigation updated with "Redeem QR" and "Analytics" links
 - **Template Management System (Jan 17, 2026):**
   - Added `TemplateProcessor` service for validation and auto-injection
   - New routes: `/templates`, `/template/import`, `/template/edit/<filename>`

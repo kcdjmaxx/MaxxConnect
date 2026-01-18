@@ -29,7 +29,11 @@ tags:
 | `/campaign/delete/<id>` | CampaignDelete | Yes | Delete campaign | Implemented |
 | `/test-template` | TestTemplate | Yes | Test email template render | Implemented |
 | `/segments` | SegmentList | Yes | Manage customer segments | Planned Phase 2 |
-| `/qr/<token>` | QRDisplay | No | Public QR code display for SMS | Planned Phase 2 |
+| `/staff/redeem` | StaffScanner | Yes | QR scanner PWA for staff | Implemented |
+| `/redeem/<token>` | RedeemResult | No | Public QR code landing page | Implemented |
+| `/api/redeem/<token>` | RedeemAPI | Yes | Perform QR redemption | Implemented |
+| `/api/validate/<token>` | ValidateAPI | Yes | Validate QR without redeeming | Implemented |
+| `/analytics/redemptions` | RedemptionAnalytics | Yes | Redemption metrics dashboard | Implemented |
 | `/signup` | PublicSignup | No | Public subscription form | Implemented |
 | `/unsubscribe` | Unsubscribe | No | Email unsubscribe handler | Implemented |
 | `/sms-optout` | SMSOptout | No | SMS opt-out handler (Twilio webhook) | Implemented |
@@ -51,13 +55,14 @@ base.html
   |-- campaign_send_confirm.html
   |-- signup.html                  [public form]
   |-- unsubscribe.html             [public]
+  |-- redemption_analytics.html    [Phase 3]
   |-- email/
   |     |-- monday_special.html    [sample template]
   |-- segments/
   |     |-- list.html              [PLANNED Phase 2]
-  |-- qr_display.html              [PLANNED Phase 2]
-  |-- campaigns/
-        |-- analytics.html         [PLANNED Phase 3]
+
+staff_redeem.html                  [standalone PWA, no base.html]
+redeem_result.html                 [standalone public page]
 ```
 
 ## Global Components

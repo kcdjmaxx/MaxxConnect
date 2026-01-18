@@ -7,15 +7,117 @@ tags:
   - type/release-notes
 ---
 
-# Release Notes - Phase 1 Complete
+# Release Notes
 
-**Version:** 1.0.0
+---
+
+# Version 3.0.0 - Phase 3 Complete
+
+**Release Date:** January 17, 2026
+**Status:** Phase 3 Complete - QR Redemption System
+
+---
+
+## What's New in 3.0.0
+
+### QR Code Redemption System
+
+Complete system for staff to validate and redeem customer QR codes via mobile-friendly web interface.
+
+#### Staff Scanner PWA (`/staff/redeem`)
+
+- **Camera QR Scanning**: Uses jsQR library for real-time QR code detection
+- **Manual Entry Fallback**: Enter tokens manually when camera unavailable
+- **Audio Feedback**: Web Audio API generates tones (ascending for success, descending for error)
+- **Voice Feedback**: Web Speech API announces results ("Valid code for John", "Success!")
+- **Visual Feedback**: Large green (VALID) or red (INVALID) display
+- **iOS Home Screen Support**: PWA meta tags allow "Add to Home Screen" for standalone app experience
+- **Dark Theme**: Optimized for scanning in various lighting conditions
+- **No Navigation Bar**: Clean, focused interface with simple "Back" button
+
+#### Public Landing Page (`/redeem/<token>`)
+
+- Shows QR code validity status to customers
+- Displays customer name and campaign info
+- Instructs customer to show screen to staff for redemption
+
+#### Redemption Analytics (`/analytics/redemptions`)
+
+- **Overall Stats**: Total QR codes, redeemed codes, redemption rate
+- **Per-Campaign Stats**: Breakdown by campaign with individual rates
+- **Hourly Distribution Chart**: Visual chart of redemptions by hour (last 30 days)
+- **Recent Redemptions Table**: Live feed of recent redemption events
+
+#### API Endpoints
+
+| Route | Method | Auth | Purpose |
+|-------|--------|------|---------|
+| `/redeem/<token>` | GET | No | Public QR landing page |
+| `/staff/redeem` | GET | Yes | Staff scanner interface |
+| `/api/redeem/<token>` | POST | Yes | Perform redemption |
+| `/api/validate/<token>` | GET | Yes | Validate without redeeming |
+| `/analytics/redemptions` | GET | Yes | Analytics dashboard |
+
+#### Database Changes
+
+New `redemptions` table:
+- `id`, `qr_code_id`, `customer_id`, `campaign_id`
+- `redeemed_at` (timestamp)
+- `redeemed_by` (staff identifier)
+- `redemption_method` ('scan' or 'manual')
+- `device_info`, `ip_address` (fraud detection)
+
+#### New Files
+
+- `backend/services/redemption_service.py` - Validation and redemption logic
+- `templates/staff_redeem.html` - PWA scanner interface
+- `templates/redeem_result.html` - Public landing page
+- `templates/redemption_analytics.html` - Analytics dashboard
+- `static/icons/scanner-icon-*.png` - PWA icons for iOS home screen
+
+#### Navigation Updates
+
+- Added "Redeem QR" link to navigation
+- Added "Analytics" link to navigation
+
+---
+
+## Upgrade Notes
+
+1. **Database Migration**: Run `init_db()` to create the new `redemptions` table
+2. **No Breaking Changes**: All existing functionality preserved
+
+---
+
+## How to Use
+
+### For Staff (Scanning QR Codes)
+
+1. Navigate to `/staff/redeem` on your phone
+2. (Optional) Add to Home Screen for quick access:
+   - Safari: Share → Add to Home Screen
+   - App will launch in standalone mode
+3. Point camera at customer's QR code
+4. Verify customer info displayed
+5. Tap "REDEEM NOW" to complete redemption
+
+### For Analytics
+
+1. Navigate to `/analytics/redemptions`
+2. View overall redemption rates
+3. Check per-campaign performance
+4. Monitor peak redemption hours
+
+---
+
+# Version 1.0.0 - Phase 1 Complete
+
 **Release Date:** December 21, 2024
 **Status:** Phase 1 Complete - Production Ready
 
 ---
 
-## 🎉 What's New
+## What's New
 
 ### Campaign Management System (v1.0.0)
 
