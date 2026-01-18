@@ -1,9 +1,59 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QR Scanner - MaxxConnect</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-{% block title %}QR Scanner{% endblock %}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #1a202c;
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-{% block content %}
-<style>
+        .back-header {
+            background: #2d3748;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            background: #4a5568;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .back-btn:hover {
+            background: #718096;
+        }
+
+        .back-arrow {
+            font-size: 1.2rem;
+        }
+
+        .page-content {
+            padding: 1rem;
+        }
+
     .scanner-container {
         max-width: 500px;
         margin: 0 auto;
@@ -65,7 +115,7 @@
 
     /* Manual entry */
     .manual-entry {
-        background: #f9fafb;
+        background: #2d3748;
         border-radius: 12px;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
@@ -74,7 +124,7 @@
     .manual-entry h3 {
         font-size: 1rem;
         margin-bottom: 1rem;
-        color: #6b7280;
+        color: #a0aec0;
     }
 
     .manual-input-group {
@@ -249,11 +299,20 @@
         background: #f59e0b;
     }
 </style>
+</head>
+<body>
+    <header class="back-header">
+        <a href="/" class="back-btn">
+            <span class="back-arrow">&larr;</span>
+            Back to Dashboard
+        </a>
+    </header>
 
-<div class="scanner-container">
+    <div class="page-content">
+        <div class="scanner-container">
     <div class="scanner-header">
         <h1>QR Code Scanner</h1>
-        <p style="color: #6b7280;">Scan customer QR codes to redeem offers</p>
+        <p style="color: #a0aec0;">Scan customer QR codes to redeem offers</p>
     </div>
 
     <div class="status-bar scanning" id="status-bar">
@@ -312,7 +371,8 @@
     </div>
 
     <canvas id="canvas"></canvas>
-</div>
+        </div>
+    </div>
 
 <!-- jsQR library -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -620,4 +680,5 @@
     // Initialize
     initCamera();
 </script>
-{% endblock %}
+</body>
+</html>
