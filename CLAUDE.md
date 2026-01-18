@@ -194,8 +194,14 @@ Complete system for staff to validate and redeem customer QR codes via mobile-fr
 
 **Adding to iOS Home Screen:**
 1. Open `/staff/redeem` in Safari
-2. Tap Share button → "Add to Home Screen"
-3. App launches in standalone mode (no Safari UI)
+2. Login with staff credentials (first time only)
+3. Tap Share button → "Add to Home Screen"
+4. App launches in standalone mode, stays logged in for 90 days
+
+**Staff Authentication:**
+- Set `STAFF_USERNAME` and `STAFF_PASSWORD` env vars for scanner-only access
+- Or use `ADMIN_USERNAME`/`ADMIN_PASSWORD` for full access
+- Cookie-based auth with 90-day sliding expiration (refreshes on each use)
 
 **Redemption Flow:**
 ```

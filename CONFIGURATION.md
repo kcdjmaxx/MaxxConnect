@@ -342,8 +342,10 @@ BASE_URL=http://localhost:5001
 | `BUSINESS_ADDRESS` | Yes | - | Physical address (legal) |
 | `SECRET_KEY` | Yes | Dev default | Flask secret key |
 | `ENCRYPTION_KEY` | Yes | - | Fernet encryption key |
-| `ADMIN_USERNAME` | Prod | - | Admin login username |
+| `ADMIN_USERNAME` | Prod | - | Admin login username (full dashboard access) |
 | `ADMIN_PASSWORD` | Prod | - | Admin login password |
+| `STAFF_USERNAME` | No | - | Staff login username (scanner-only access) |
+| `STAFF_PASSWORD` | No | - | Staff login password |
 
 ## Troubleshooting
 
@@ -407,6 +409,7 @@ The admin interface is protected with HTTP Basic Authentication in production.
 - `/unsubscribe` - Email unsubscribe links
 - `/sms-optout` - SMS opt-out (Twilio webhook)
 - `/signup` - Public signup form
+- `/redeem/<token>` - Public QR code landing page
 
 **Setting up (Railway):**
 
@@ -420,6 +423,42 @@ The admin interface is protected with HTTP Basic Authentication in production.
 **Development behavior:**
 - If `ADMIN_USERNAME`/`ADMIN_PASSWORD` are not set, auth is disabled for convenience
 - Set them in `.env` to test locally
+
+### Staff Authentication (QR Scanner)
+
+The QR scanner interface uses separate cookie-based authentication optimized for mobile devices.
+
+**How it works:**
+- Staff login once on their device
+- Cookie stored for 90 days with sliding expiration (refreshes on each use)
+- Separate credentials limit access to scanner only
+
+**Staff routes:**
+- `/staff/login` - Staff login page
+- `/staff/redeem` - QR scanner interface
+- `/staff/logout` - Clear staff session
+- `/api/validate/<token>` - Validate QR code
+- `/api/redeem/<token>` - Redeem QR code
+
+**Setting up (Railway):**
+
+1. Go to Railway dashboard → Variables
+2. Add these variables:
+   ```
+   STAFF_USERNAME=scanner
+   STAFF_PASSWORD=your_staff_password
+   ```
+
+**Credential hierarchy:**
+- `STAFF_USERNAME`/`STAFF_PASSWORD` → Scanner access only
+- `ADMIN_USERNAME`/`ADMIN_PASSWORD` → Full dashboard + scanner access
+- If staff credentials not set, admin credentials work for scanner
+
+**Mobile PWA setup:**
+1. Staff opens `/staff/redeem` on phone
+2. Logs in with staff credentials
+3. Adds to Home Screen (Share → Add to Home Screen)
+4. App stays logged in for 90 days (refreshes on each use)
 
 ### Secret Key Generation
 
