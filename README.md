@@ -378,7 +378,11 @@ The app automatically adapts:
 
 ## License
 
-Proprietary - All rights reserved.
+**Source Available - Non-Commercial**
+
+You're free to view, study, and learn from this code. Commercial use requires a license. See [LICENSE](LICENSE) for details.
+
+Interested in using MaxxConnect for your restaurant? Contact me for licensing.
 
 ---
 
