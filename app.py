@@ -1636,14 +1636,22 @@ def api_public_signup():
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response, 400
 
+    # Generate placeholder email if not provided (required by database)
+    # Format: sms_<last4digits>_<timestamp>@sms.placeholder
+    if not email:
+        import hashlib
+        phone_hash = hashlib.sha256(normalized_phone.encode()).hexdigest()[:8]
+        email = f"sms_{phone_hash}@sms.placeholder"
+        subscribe_email = False  # Don't try to email placeholder addresses
+
     db = get_db()
     try:
-        # Check if customer exists by phone or email
+        # Check if customer exists by phone first (primary for SMS signups)
         existing = None
-        if email:
-            existing = Customer.find_by_email(db, email)
-        if not existing and normalized_phone:
+        if normalized_phone:
             existing = Customer.find_by_phone(db, normalized_phone)
+        if not existing and email and not email.endswith('@sms.placeholder'):
+            existing = Customer.find_by_email(db, email)
 
         if existing:
             # Update existing customer
