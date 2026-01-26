@@ -1589,6 +1589,117 @@ def template_delete(filename):
     return redirect('/templates')
 
 
+@app.route('/api/public/signup', methods=['POST', 'OPTIONS'])
+def api_public_signup():
+    """
+    Public API endpoint for external SMS/email signups (CORS-enabled)
+
+    Used by external signup forms hosted on fricandfrac.net
+    Accepts JSON payload and returns JSON response.
+
+    Required fields:
+    - phone: Phone number (will be normalized to E.164)
+
+    Optional fields:
+    - email: Email address
+    - name: Customer name
+    - subscribe_email: Boolean (default False)
+    - subscribe_sms: Boolean (default True)
+    """
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
+
+    # Get JSON data
+    data = request.get_json() or {}
+
+    phone = data.get('phone', '').strip()
+    email = data.get('email', '').strip().lower()
+    name = data.get('name', '').strip()
+    subscribe_sms = data.get('subscribe_sms', True)
+    subscribe_email = data.get('subscribe_email', False)
+
+    # Phone is required for SMS signup
+    if not phone:
+        response = make_response({'success': False, 'error': 'Phone number is required'})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 400
+
+    # Normalize phone number
+    normalized_phone = format_phone_number(phone)
+    if not normalized_phone or not validate_phone_number(normalized_phone):
+        response = make_response({'success': False, 'error': 'Invalid phone number format'})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 400
+
+    db = get_db()
+    try:
+        # Check if customer exists by phone or email
+        existing = None
+        if email:
+            existing = Customer.find_by_email(db, email)
+        if not existing and normalized_phone:
+            existing = Customer.find_by_phone(db, normalized_phone)
+
+        if existing:
+            # Update existing customer
+            if name:
+                existing.name = name
+            if normalized_phone:
+                existing.phone = normalized_phone
+            if email:
+                existing.email = email
+            if subscribe_sms and not existing.sms_subscribed:
+                existing.sms_subscribed = True
+                existing.sms_opted_in_date = datetime.now()
+            if subscribe_email and not existing.subscribed:
+                existing.subscribed = True
+                existing.opted_in_date = datetime.now()
+            existing.updated_at = datetime.now()
+            db.commit()
+
+            response = make_response({
+                'success': True,
+                'message': 'Subscription updated successfully!',
+                'is_new': False
+            })
+        else:
+            # Create new customer
+            customer = Customer(
+                email=email if email else None,
+                phone=normalized_phone,
+                name=name if name else None,
+                subscribed=subscribe_email,
+                opted_in_date=datetime.now() if subscribe_email else None,
+                sms_subscribed=subscribe_sms,
+                sms_opted_in_date=datetime.now() if subscribe_sms else None,
+                segments='website-signup'
+            )
+            db.add(customer)
+            db.commit()
+
+            response = make_response({
+                'success': True,
+                'message': 'Thank you for signing up!',
+                'is_new': True
+            })
+
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+
+    except Exception as e:
+        db.rollback()
+        response = make_response({'success': False, 'error': str(e)})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 500
+    finally:
+        db.close()
+
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     """
