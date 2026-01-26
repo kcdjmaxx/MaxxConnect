@@ -1637,12 +1637,14 @@ def api_public_signup():
         return response, 400
 
     # Generate placeholder email if not provided (required by database)
-    # Format: sms_<last4digits>_<timestamp>@sms.placeholder
+    # Format: sms_<hash>@sms.placeholder
+    import hashlib as hl
+    use_placeholder_email = False
     if not email:
-        import hashlib
-        phone_hash = hashlib.sha256(normalized_phone.encode()).hexdigest()[:8]
+        phone_hash = hl.sha256(normalized_phone.encode()).hexdigest()[:8]
         email = f"sms_{phone_hash}@sms.placeholder"
         subscribe_email = False  # Don't try to email placeholder addresses
+        use_placeholder_email = True
 
     db = get_db()
     try:
@@ -1650,7 +1652,7 @@ def api_public_signup():
         existing = None
         if normalized_phone:
             existing = Customer.find_by_phone(db, normalized_phone)
-        if not existing and email and not email.endswith('@sms.placeholder'):
+        if not existing and not use_placeholder_email:
             existing = Customer.find_by_email(db, email)
 
         if existing:
@@ -1659,7 +1661,7 @@ def api_public_signup():
                 existing.name = name
             if normalized_phone:
                 existing.phone = normalized_phone
-            if email:
+            if not use_placeholder_email and email:
                 existing.email = email
             if subscribe_sms and not existing.sms_subscribed:
                 existing.sms_subscribed = True
@@ -1676,9 +1678,9 @@ def api_public_signup():
                 'is_new': False
             })
         else:
-            # Create new customer
+            # Create new customer - email is guaranteed to have a value now
             customer = Customer(
-                email=email if email else None,
+                email=email,
                 phone=normalized_phone,
                 name=name if name else None,
                 subscribed=subscribe_email,
