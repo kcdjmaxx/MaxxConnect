@@ -1304,14 +1304,31 @@ def template_list():
     """
     List all email templates with validation status
 
+    Shows both bundled templates (templates/email/) and user-created templates (uploads/templates/)
+
     UI: ui-template-list.md
     """
     from backend.services.template_processor import TemplateProcessor
 
     processor = TemplateProcessor()
-    templates = processor.list_templates(app.template_folder)
 
-    return render_template('template_list.html', templates=templates)
+    # Get bundled templates
+    bundled_templates = processor.list_templates(app.template_folder)
+    for t in bundled_templates:
+        t['is_user_template'] = False
+
+    # Get user-created templates
+    user_templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+    user_templates = processor.list_templates(user_templates_dir, subfolder='templates')
+    for t in user_templates:
+        t['is_user_template'] = True
+        t['filename'] = 'user:' + t['filename']  # Prefix to distinguish
+
+    # Combine and sort
+    all_templates = bundled_templates + user_templates
+    all_templates.sort(key=lambda x: x['name'])
+
+    return render_template('template_list.html', templates=all_templates)
 
 
 @app.route('/template/new', methods=['GET', 'POST'])
@@ -1346,12 +1363,16 @@ def template_new():
         if not safe_name.endswith('.html'):
             safe_name += '.html'
 
-        # Check if template already exists
-        email_dir = os.path.join(app.template_folder, 'email')
-        os.makedirs(email_dir, exist_ok=True)
-        template_path = os.path.join(email_dir, safe_name)
+        # User-created templates go to uploads/templates/ (Railway volume for persistence)
+        # Bundled templates stay in templates/email/ (read-only, part of deploy)
+        user_templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'templates')
+        os.makedirs(user_templates_dir, exist_ok=True)
+        template_path = os.path.join(user_templates_dir, safe_name)
 
-        if os.path.exists(template_path):
+        # Also check bundled templates to avoid name conflicts
+        bundled_path = os.path.join(app.template_folder, 'email', safe_name)
+
+        if os.path.exists(template_path) or os.path.exists(bundled_path):
             flash(f'Template "{safe_name}" already exists. Please choose a different name.', 'error')
             return redirect('/template/new')
 
@@ -1367,7 +1388,8 @@ def template_new():
                 f.write(html_content)
 
             flash(f'Template "{safe_name}" created successfully!', 'success')
-            return redirect(f'/template/edit/{safe_name}')
+            # Use 'user:' prefix to indicate user template
+            return redirect(f'/template/edit/user:{safe_name}')
         except Exception as e:
             flash(f'Error creating template: {str(e)}', 'error')
             return redirect('/template/new')
@@ -1474,6 +1496,28 @@ def template_image(filename):
         response.headers['Content-Type'] = content_type
         response.headers['Cache-Control'] = 'public, max-age=31536000'
         return response
+
+
+def get_template_path(filename):
+    """
+    Resolve template filename to full path
+
+    Handles both bundled templates (templates/email/) and user templates (uploads/templates/)
+    User templates are prefixed with 'user:'
+
+    Returns: (full_path, is_user_template)
+    """
+    if filename.startswith('user:'):
+        # User-created template in uploads/templates/
+        actual_filename = filename[5:]  # Remove 'user:' prefix
+        safe_filename = secure_filename(actual_filename)
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'templates', safe_filename)
+        return path, True
+    else:
+        # Bundled template in templates/email/
+        safe_filename = secure_filename(filename)
+        path = os.path.join(app.template_folder, 'email', safe_filename)
+        return path, False
 
 
 @app.route('/template/import', methods=['GET', 'POST'])
@@ -1587,27 +1631,26 @@ def template_import():
     return render_template('template_import.html', step=1)
 
 
-@app.route('/template/edit/<filename>', methods=['GET', 'POST'])
+@app.route('/template/edit/<path:filename>', methods=['GET', 'POST'])
 @auth.login_required
 def template_edit(filename):
     """
     Edit an existing email template
 
+    Handles both bundled templates and user-created templates (prefixed with 'user:')
+
     UI: ui-template-edit.md
     """
     from backend.services.template_processor import TemplateProcessor
 
-    # Security: ensure filename is safe
-    safe_filename = secure_filename(filename)
-    if safe_filename != filename:
-        flash('Invalid template name', 'error')
-        return redirect('/templates')
-
-    template_path = os.path.join(app.template_folder, 'email', safe_filename)
+    template_path, is_user_template = get_template_path(filename)
 
     if not os.path.exists(template_path):
         flash('Template not found', 'error')
         return redirect('/templates')
+
+    # Extract just the filename for display
+    display_filename = filename[5:] if filename.startswith('user:') else filename
 
     processor = TemplateProcessor()
 
@@ -1618,7 +1661,7 @@ def template_edit(filename):
         if action == 'validate':
             report = processor.validate(html_content)
             return render_template('template_edit.html',
-                                 filename=safe_filename,
+                                 filename=display_filename,
                                  html_content=html_content,
                                  report=report)
 
@@ -1626,13 +1669,13 @@ def template_edit(filename):
             try:
                 with open(template_path, 'w', encoding='utf-8') as f:
                     f.write(html_content)
-                flash(f'Template "{safe_filename}" saved successfully!', 'success')
+                flash(f'Template "{display_filename}" saved successfully!', 'success')
                 return redirect('/templates')
             except Exception as e:
                 flash(f'Error saving template: {str(e)}', 'error')
                 report = processor.validate(html_content)
                 return render_template('template_edit.html',
-                                     filename=safe_filename,
+                                     filename=display_filename,
                                      html_content=html_content,
                                      report=report)
 
@@ -1642,7 +1685,7 @@ def template_edit(filename):
                 flash('Test email address is required', 'error')
                 report = processor.validate(html_content)
                 return render_template('template_edit.html',
-                                     filename=safe_filename,
+                                     filename=display_filename,
                                      html_content=html_content,
                                      report=report)
 
@@ -1659,7 +1702,7 @@ def template_edit(filename):
                 rendered = render_template_string(html_content, **template_vars)
                 rendered = rendered.replace('[[CUSTOMER_NAME]]', 'Test Customer')
 
-                result = send_email(test_email, 'Test Customer', f'Template Test: {safe_filename}', rendered)
+                result = send_email(test_email, 'Test Customer', f'Template Test: {display_filename}', rendered)
 
                 if result.get('success'):
                     flash(f'Test email sent to {test_email}!', 'success')
@@ -1671,7 +1714,7 @@ def template_edit(filename):
 
             report = processor.validate(html_content)
             return render_template('template_edit.html',
-                                 filename=safe_filename,
+                                 filename=display_filename,
                                  html_content=html_content,
                                  report=report)
 
@@ -1682,17 +1725,16 @@ def template_edit(filename):
     report = processor.validate(html_content)
 
     return render_template('template_edit.html',
-                         filename=safe_filename,
+                         filename=display_filename,
                          html_content=html_content,
                          report=report)
 
 
-@app.route('/template/preview/<filename>')
+@app.route('/template/preview/<path:filename>')
 @auth.login_required
 def template_preview(filename):
     """Preview a template with sample data"""
-    safe_filename = secure_filename(filename)
-    template_path = os.path.join(app.template_folder, 'email', safe_filename)
+    template_path, is_user_template = get_template_path(filename)
 
     if not os.path.exists(template_path):
         return "Template not found", 404
@@ -1727,16 +1769,12 @@ def template_preview(filename):
         return f"Error rendering template: {str(e)}", 500
 
 
-@app.route('/template/delete/<filename>', methods=['POST'])
+@app.route('/template/delete/<path:filename>', methods=['POST'])
 @auth.login_required
 def template_delete(filename):
-    """Delete a template"""
-    safe_filename = secure_filename(filename)
-    if safe_filename != filename:
-        flash('Invalid template name', 'error')
-        return redirect('/templates')
-
-    template_path = os.path.join(app.template_folder, 'email', safe_filename)
+    """Delete a template (only user-created templates can be deleted in production)"""
+    template_path, is_user_template = get_template_path(filename)
+    display_filename = filename[5:] if filename.startswith('user:') else filename
 
     if not os.path.exists(template_path):
         flash('Template not found', 'error')
@@ -1744,7 +1782,7 @@ def template_delete(filename):
 
     try:
         os.remove(template_path)
-        flash(f'Template "{safe_filename}" deleted successfully!', 'success')
+        flash(f'Template "{display_filename}" deleted successfully!', 'success')
     except Exception as e:
         flash(f'Error deleting template: {str(e)}', 'error')
 

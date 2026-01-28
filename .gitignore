@@ -10,6 +10,9 @@ uploads/*
 !uploads/images/
 uploads/images/*
 !uploads/images/.gitkeep
+!uploads/templates/
+uploads/templates/*
+!uploads/templates/.gitkeep
 linkedinpost.md
 FUTURE-FEATURES.md
 ZapierLite.md

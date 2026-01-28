@@ -539,25 +539,26 @@ class TemplateProcessor:
             'report': report
         }
 
-    def list_templates(self, templates_dir: str) -> List[dict]:
+    def list_templates(self, templates_dir: str, subfolder: str = 'email') -> List[dict]:
         """
         List all email templates with validation info
 
         Args:
-            templates_dir: Path to templates/email/ directory
+            templates_dir: Base directory containing templates
+            subfolder: Subfolder name ('email' for bundled, 'templates' for user-created)
 
         Returns:
             List of template info dicts
         """
         templates = []
-        email_dir = os.path.join(templates_dir, 'email')
+        target_dir = os.path.join(templates_dir, subfolder)
 
-        if not os.path.exists(email_dir):
+        if not os.path.exists(target_dir):
             return templates
 
-        for filename in sorted(os.listdir(email_dir)):
+        for filename in sorted(os.listdir(target_dir)):
             if filename.endswith('.html'):
-                template_path = os.path.join(email_dir, filename)
+                template_path = os.path.join(target_dir, filename)
                 info = self.get_template_info(template_path)
                 if info:
                     templates.append(info)
