@@ -593,8 +593,8 @@ editor.addEventListener('input', function() {
 function updatePreview() {
     let html = editor.value;
 
-    // Remove Jinja2 control blocks ({% if %}, {% else %}, {% endif %}, etc.)
-    html = html.replace(/\{%[\s\S]*?%\}/g, '');
+    // Remove Jinja2 control blocks (if/else/endif, etc.)
+    html = html.replace(new RegExp('\\{' + '%[\\s\\S]*?%\\}', 'g'), '');
 
     // Replace Jinja2 variables with sample data for preview
     html = html.replace(/\[\[CUSTOMER_NAME\]\]/g, 'Sample Customer');
