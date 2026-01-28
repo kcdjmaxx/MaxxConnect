@@ -359,6 +359,15 @@ Required setup:
   - Click to insert into template
   - Delete unused images
   - Storage usage indicator
+- **WYSIWYG Template Editor** - Visual editing mode for non-technical users
+  - Toggle between Code view and Text view
+  - Text mode edits only the main body content (not header/footer)
+  - Formatting toolbar: bold, italic, underline
+  - Text alignment: left, center, right, justify
+  - Font size controls
+  - Bullet and numbered lists
+  - Link insertion
+  - Could use TinyMCE, Quill, or similar library
 
 ## Project Structure (Recommended)
 
