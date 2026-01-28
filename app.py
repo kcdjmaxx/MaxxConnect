@@ -1314,6 +1314,168 @@ def template_list():
     return render_template('template_list.html', templates=templates)
 
 
+@app.route('/template/new', methods=['GET', 'POST'])
+@auth.login_required
+def template_new():
+    """
+    Create a new template from starter or blank template
+
+    UI: ui-template-create.md
+    """
+    from backend.services.template_processor import TemplateProcessor
+
+    processor = TemplateProcessor()
+
+    if request.method == 'POST':
+        template_name = request.form.get('template_name', '').strip()
+        template_type = request.form.get('template_type', 'starter')
+
+        # Validate template name
+        if not template_name:
+            flash('Template name is required', 'error')
+            return redirect('/template/new')
+
+        # Sanitize: only allow alphanumeric and underscores
+        import re
+        if not re.match(r'^[a-zA-Z0-9_]+$', template_name):
+            flash('Template name can only contain letters, numbers, and underscores', 'error')
+            return redirect('/template/new')
+
+        # Create safe filename
+        safe_name = template_name.lower()
+        if not safe_name.endswith('.html'):
+            safe_name += '.html'
+
+        # Check if template already exists
+        email_dir = os.path.join(app.template_folder, 'email')
+        os.makedirs(email_dir, exist_ok=True)
+        template_path = os.path.join(email_dir, safe_name)
+
+        if os.path.exists(template_path):
+            flash(f'Template "{safe_name}" already exists. Please choose a different name.', 'error')
+            return redirect('/template/new')
+
+        # Get the appropriate template content
+        if template_type == 'blank':
+            html_content = processor.get_blank_template()
+        else:
+            html_content = processor.get_starter_template()
+
+        # Save the template
+        try:
+            with open(template_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+
+            flash(f'Template "{safe_name}" created successfully!', 'success')
+            return redirect(f'/template/edit/{safe_name}')
+        except Exception as e:
+            flash(f'Error creating template: {str(e)}', 'error')
+            return redirect('/template/new')
+
+    # GET request - show form with preview
+    starter_html = processor.get_starter_template()
+    blank_html = processor.get_blank_template()
+
+    return render_template('template_create.html',
+                         starter_html=starter_html,
+                         blank_html=blank_html)
+
+
+@app.route('/api/template/upload-image', methods=['POST'])
+@auth.login_required
+def api_template_upload_image():
+    """
+    Upload an image for use in email templates
+
+    Accepts multipart image upload, validates type and size,
+    saves to templates/images/ with unique filename.
+
+    Returns JSON with filename, url, and html_snippet for insertion.
+    """
+    import time
+
+    if 'image' not in request.files:
+        return {'success': False, 'error': 'No image file provided'}, 400
+
+    file = request.files['image']
+    if file.filename == '':
+        return {'success': False, 'error': 'No file selected'}, 400
+
+    # Validate file type
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in allowed_extensions:
+        return {'success': False, 'error': 'Invalid file type. Use PNG, JPG, or GIF.'}, 400
+
+    # Validate file size (max 2MB)
+    file.seek(0, 2)  # Seek to end
+    size = file.tell()
+    file.seek(0)  # Reset to beginning
+    if size > 2 * 1024 * 1024:
+        return {'success': False, 'error': 'File too large. Maximum size is 2MB.'}, 400
+
+    # Generate unique filename
+    original_name = secure_filename(file.filename.rsplit('.', 1)[0])
+    timestamp = int(time.time())
+    new_filename = f"{original_name}_{timestamp}.{ext}"
+
+    # Save to uploads/images/ (separate from app assets, mounted as Railway volume in production)
+    images_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'images')
+    os.makedirs(images_dir, exist_ok=True)
+    save_path = os.path.join(images_dir, new_filename)
+
+    try:
+        file.save(save_path)
+
+        # Generate HTML snippet with Jinja2 url_for so it works in dev and production
+        # When the template is rendered at send time, this becomes the correct full URL
+        html_snippet = f'<img src="{{{{ url_for(\'template_image\', filename=\'{new_filename}\', _external=True) }}}}" width="600" alt="{original_name}" border="0" style="width: 100%; max-width: 600px; height: auto;">'
+
+        return {
+            'success': True,
+            'filename': new_filename,
+            'url': url_for('template_image', filename=new_filename, _external=True),
+            'html_snippet': html_snippet
+        }
+    except Exception as e:
+        return {'success': False, 'error': str(e)}, 500
+
+
+@app.route('/template/images/<filename>')
+def template_image(filename):
+    """
+    Serve uploaded images from uploads/images/ directory
+
+    Used for images uploaded via the template editor.
+    In production, this folder is mounted as a Railway volume for persistence.
+    """
+    safe_filename = secure_filename(filename)
+    if safe_filename != filename:
+        return "Invalid filename", 400
+
+    images_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'images')
+    image_path = os.path.join(images_dir, safe_filename)
+
+    if not os.path.exists(image_path):
+        return "Image not found", 404
+
+    # Determine content type
+    ext = safe_filename.rsplit('.', 1)[-1].lower()
+    content_types = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'gif': 'image/gif'
+    }
+    content_type = content_types.get(ext, 'application/octet-stream')
+
+    with open(image_path, 'rb') as f:
+        response = make_response(f.read())
+        response.headers['Content-Type'] = content_type
+        response.headers['Cache-Control'] = 'public, max-age=31536000'
+        return response
+
+
 @app.route('/template/import', methods=['GET', 'POST'])
 @auth.login_required
 def template_import():

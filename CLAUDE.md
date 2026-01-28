@@ -48,6 +48,11 @@ Two services from the same repo:
 - Start command: `celery -A backend.tasks.celery_app worker --loglevel=info --concurrency=2`
 - Required env vars (copy from web): `DATABASE_URL`, `REDIS_URL`, `ENCRYPTION_KEY`, `SENDGRID_API_KEY`, `SENDER_EMAIL`, `BUSINESS_NAME`
 
+**Railway Volume (for uploaded images):**
+- Mount path: `/app/uploads/images`
+- Purpose: Persist user-uploaded template images across deploys
+- Setup: Railway Dashboard → Web Service → Settings → Volumes → Add Volume
+
 ## Database Schema
 
 Core entities to track:
@@ -349,6 +354,11 @@ Required setup:
 - Redemption report exports
 - A/B testing infrastructure
 - Performance optimization
+- **Image Gallery** - User interface to view/reuse previously uploaded images
+  - List uploaded images with thumbnails
+  - Click to insert into template
+  - Delete unused images
+  - Storage usage indicator
 
 ## Project Structure (Recommended)
 
@@ -375,16 +385,26 @@ MaxxConnect/
 - Add expiration dates to all QR codes
 # Project Instructions
 
-## Mini-Spec Workflow
+## Mini-Spec Workflow (v2.1.4)
 
 Use `/mini-spec` for all design and implementation work. This is a 3-level architecture:
 
 ```
-specs/    # Human specs (what you want)
-design/   # SOURCE OF TRUTH: crc-*, seq-*, ui-*, test-*, design.md
+specs/    # Human specs (language, environment required)
+design/   # SOURCE OF TRUTH: requirements.md, crc-*, seq-*, ui-*, test-*, design.md
 docs/     # user-manual.md, developer-guide.md
 src/      # Code with traceability comments
 ```
+
+### Phases (in order)
+
+1. **Spec Phase** - Create human-readable specs in `specs/`
+2. **Requirements Phase** - Create `design/requirements.md` with numbered requirements (R1, R2, ...)
+3. **Design Phase** - Create CRC cards, sequences, UI specs in `design/`
+4. **Implementation Phase** - Write code with traceability comments
+5. **Simplification Phase** - Run code-simplifier agent on modified code
+6. **Gaps Phase** - Validate traceability, document gaps
+7. **Documentation Phase** (optional) - Create user/developer guides
 
 ### Phase Separation
 
@@ -392,11 +412,32 @@ src/      # Code with traceability comments
 - **"Implement"** = code only, update Artifacts checkboxes
 - **"Code changes"** = uncheck Artifacts, ask user about design updates
 
-### Design Phase
+### Minispec CLI Tool
+
+Use `~/.claude/bin/minispec` for structural operations:
+
+```bash
+# Phase validation (run after each phase)
+~/.claude/bin/minispec phase spec|requirements|design|implementation|gaps
+
+# Full validation
+~/.claude/bin/minispec validate
+
+# Queries
+~/.claude/bin/minispec query artifacts|uncovered|gaps|requirements
+
+# Updates
+~/.claude/bin/minispec update check design.md crc-Store.md
+~/.claude/bin/minispec update uncheck design.md crc-Store.md
+~/.claude/bin/minispec update add-ref crc-Store.md R5
+```
+
+### Design Phase Artifacts
 
 Create in `design/`:
 - `design.md`: Intent + Artifacts (design files → code file checkboxes) + Cross-cutting Concerns + Gaps
-- `crc-*`: CRC cards (Knows/Does/Collaborators/Sequences)
+- `requirements.md`: Numbered requirements from specs (R1, R2, ...)
+- `crc-*`: CRC cards with **Requirements:** references
 - `seq-*`: Sequence diagrams (≤150 chars wide)
 - `ui-*`: ASCII layouts, reference CRC cards
 - `test-*`: Test designs
@@ -410,17 +451,26 @@ Add traceability comments:
 def add(data):
 ```
 
-Mark implemented: `[ ]`→`[x]` in Artifacts section of `design.md`.
+Mark implemented using minispec:
+```bash
+~/.claude/bin/minispec update check design.md crc-Store.md
+```
 
 ### Traceability
 
+- All CRC cards must reference requirements: `**Requirements:** R1, R3, R7`
 - `design.md` Artifacts section: design files with code file checkboxes
-- **Code changes:** Uncheck `[x]`→`[ ]`, ask user: "Update design, specs, or defer?"
-- **Update design:** Read code, update design file, re-check box
+- **Code changes:** Uncheck artifact, ask user: "Update design, specs, or defer?"
+- **Update design:** Read code, update design file, re-check artifact
 
 ### Gap Analysis
 
-`design.md` Gaps section tracks: Spec→Design, Design→Code, Code→Design, Oversights.
+`design.md` Gaps section tracks (use S1/R1/D1/C1/O1 numbering):
+- **Spec→Requirements (Sn):** Spec items not in requirements.md
+- **Requirements→Design (Rn):** Requirements without design artifacts
+- **Design→Code (Dn):** Designed features without code
+- **Code→Design (Cn):** Code without design artifacts
+- **Oversights (On):** Missing tests, tech debt, security concerns
 
 ### Optional: Spec Agent
 

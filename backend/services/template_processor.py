@@ -11,6 +11,215 @@ from typing import List, Tuple
 from backend.config import Config
 
 
+# Starter template with professional email layout (~180 lines)
+# Based on common patterns from existing templates
+STARTER_TEMPLATE_HTML = '''<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<!-- utf-8 works for most cases -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Forcing initial-scale shouldn't be necessary -->
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<!-- Use the latest (edge) version of IE rendering engine -->
+<title>Your Email Title Here</title>
+<!-- The title tag shows in email notifications, like Android 4.4. -->
+
+<!-- CSS Reset -->
+<style type="text/css">
+/* What it does: Remove spaces around the email design added by some email clients. */
+html, body {
+	margin: 0 !important;
+	padding: 0 !important;
+	height: 100% !important;
+	width: 100% !important;
+}
+/* What it does: Stops email clients resizing small text. */
+* {
+	-ms-text-size-adjust: 100%;
+	-webkit-text-size-adjust: 100%;
+}
+/* What it does: Forces Outlook.com to display emails full width. */
+.ExternalClass {
+	width: 100%;
+}
+/* What is does: Centers email on Android 4.4 */
+div[style*="margin: 16px 0"] {
+	margin: 0 !important;
+}
+/* What it does: Stops Outlook from adding extra spacing to tables. */
+table, td {
+	mso-table-lspace: 0pt !important;
+	mso-table-rspace: 0pt !important;
+}
+/* What it does: Fixes webkit padding issue. Fix for Yahoo mail table alignment bug. */
+table {
+	border-spacing: 0 !important;
+	border-collapse: collapse !important;
+	table-layout: fixed !important;
+	margin: 0 auto !important;
+}
+table table table {
+	table-layout: auto;
+}
+/* What it does: Uses a better rendering method when resizing images in IE. */
+img {
+	-ms-interpolation-mode: bicubic;
+}
+/* What it does: Overrides styles added when Yahoo's auto-senses a link. */
+.yshortcuts a {
+	border-bottom: none !important;
+}
+/* What it does: Another work-around for iOS meddling in triggered links. */
+a[x-apple-data-detectors] {
+	color: inherit !important;
+}
+</style>
+
+<!-- Progressive Enhancements -->
+<style type="text/css">
+/* What it does: Hover styles for buttons */
+.button-td, .button-a {
+	transition: all 100ms ease-in;
+}
+.button-td:hover, .button-a:hover {
+	background: #555555 !important;
+	border-color: #555555 !important;
+}
+</style>
+</head>
+<body width="100%" height="100%" bgcolor="#e0e0e0" style="margin: 0;" yahoo="yahoo">
+<table cellpadding="0" cellspacing="0" border="0" height="100%" width="100%" bgcolor="#e0e0e0" style="border-collapse:collapse;">
+  <tr>
+    <td><center style="width: 100%;">
+
+        <!-- Visually Hidden Preheader Text : BEGIN -->
+        <div style="display:none;font-size:1px;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;font-family: sans-serif;">Your preheader text goes here - this shows in email previews.</div>
+        <!-- Visually Hidden Preheader Text : END -->
+
+        <div style="max-width: 600px;">
+          <!--[if (gte mso 9)|(IE)]>
+            <table cellspacing="0" cellpadding="0" border="0" width="600" align="center">
+            <tr>
+            <td>
+            <![endif]-->
+
+          <!-- Email Header : BEGIN -->
+          <table cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px;">
+            <tr>
+              <td style="padding: 20px 0; text-align: center">
+                <img src="{{ logo_url }}" width="200" height="50" alt="Your Logo" border="0">
+              </td>
+            </tr>
+          </table>
+          <!-- Email Header : END -->
+
+          <!-- Email Body : BEGIN -->
+          <table cellspacing="0" cellpadding="0" border="0" align="center" bgcolor="#ffffff" width="100%" style="max-width: 600px;">
+
+            <!-- Hero Image, Flush : BEGIN -->
+            <tr>
+              <td class="full-width-image" align="center">
+                <img src="{{ hero_image_url }}" width="600" alt="Hero Image" border="0" style="width: 100%; max-width: 600px; height: auto;">
+              </td>
+            </tr>
+            <!-- Hero Image, Flush : END -->
+
+            <!-- 1 Column Text : BEGIN -->
+            <tr>
+              <td style="padding: 40px 20px; text-align: center; font-family: sans-serif;">
+                <h1 style="color: #2c3e50; font-size: 28px; margin: 0 0 20px 0; font-family: sans-serif;">Hello, [[CUSTOMER_NAME]]!</h1>
+
+                <p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0; font-family: sans-serif;">
+                  Your email content goes here. This is a great place to share your message with your subscribers.
+                </p>
+
+                <p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0; font-family: sans-serif;">
+                  Add more paragraphs as needed to tell your story. Remember to keep your message clear and engaging.
+                </p>
+
+                <p style="color: #888888; font-size: 14px; font-style: italic; margin: 0; font-family: sans-serif;">
+                  Your closing message here.<br><br>
+                  <em>Your Team Name</em>
+                </p>
+              </td>
+            </tr>
+            <!-- 1 Column Text : END -->
+
+            <!-- QR_CODE_SECTION -->
+
+          </table>
+          <!-- Email Body : END -->
+
+          <!-- Email Footer : BEGIN -->
+          <table cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px;">
+            <tr>
+              <td style="padding: 40px 10px; font-family: sans-serif; font-size: 12px; line-height: 18px; text-align: center; color: #888888;">
+                <p style="margin: 0 0 10px 0;">
+                  Fric &amp; Frac<br>
+                  1700 West 39th St. Kansas City, MO 64111
+                </p>
+                <p style="margin: 0;">
+                  <a href="{{ unsubscribe_link }}" style="color: #888888; text-decoration: underline;">Unsubscribe</a>
+                  &nbsp;|&nbsp;
+                  <a href="https://fricandfrac.net/privacy/" style="color: #888888; text-decoration: underline;">Privacy Policy</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+          <!-- Email Footer : END -->
+
+          <!--[if (gte mso 9)|(IE)]>
+            </td>
+            </tr>
+            </table>
+            <![endif]-->
+        </div>
+      </center></td>
+  </tr>
+</table>
+</body>
+</html>
+'''
+
+# Blank template with minimal valid structure (~30 lines)
+# Contains only required compliance elements
+BLANK_TEMPLATE_HTML = '''<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Title</title>
+</head>
+<body style="margin: 0; padding: 20px; font-family: sans-serif; background-color: #f5f5f5;">
+  <div style="max-width: 600px; margin: 0 auto; background: white; padding: 20px;">
+
+    <h1>Hello, [[CUSTOMER_NAME]]!</h1>
+
+    <p>Your email content goes here.</p>
+
+    <!-- QR_CODE_SECTION -->
+
+    <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+
+    <footer style="font-size: 12px; color: #888888; text-align: center;">
+      <p>
+        Fric &amp; Frac<br>
+        1700 West 39th St. Kansas City, MO 64111
+      </p>
+      <p>
+        <a href="{{ unsubscribe_link }}" style="color: #888888;">Unsubscribe</a>
+        &nbsp;|&nbsp;
+        <a href="https://fricandfrac.net/privacy/" style="color: #888888;">Privacy Policy</a>
+      </p>
+    </footer>
+
+  </div>
+</body>
+</html>
+'''
+
+
 @dataclass
 class ValidationReport:
     """Results of template validation"""
@@ -354,3 +563,22 @@ class TemplateProcessor:
                     templates.append(info)
 
         return templates
+
+    def get_starter_template(self) -> str:
+        """
+        Get the starter template HTML with professional email layout
+
+        Returns:
+            Complete HTML template string with CSS reset, table layout,
+            header, hero image, content area, QR section marker, and footer
+        """
+        return STARTER_TEMPLATE_HTML
+
+    def get_blank_template(self) -> str:
+        """
+        Get the blank template HTML with minimal valid structure
+
+        Returns:
+            Minimal HTML template string with only required compliance elements
+        """
+        return BLANK_TEMPLATE_HTML

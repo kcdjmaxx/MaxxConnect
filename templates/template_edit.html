@@ -13,9 +13,12 @@
     <div class="editor-panel">
         <form method="POST" id="editor-form">
             <div class="editor-toolbar">
-                <button type="submit" name="action" value="save" class="btn btn-success">💾 Save</button>
-                <button type="submit" name="action" value="validate" class="btn btn-secondary">✓ Validate</button>
-                <button type="button" class="btn btn-secondary" onclick="refreshPreview()">🔄 Refresh Preview</button>
+                <button type="submit" name="action" value="save" class="btn btn-success">Save</button>
+                <button type="submit" name="action" value="validate" class="btn btn-secondary">Validate</button>
+                <button type="button" class="btn btn-secondary" onclick="refreshPreview()">Refresh Preview</button>
+                <span class="toolbar-divider">|</span>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('image-upload').click()">Upload Hero Image</button>
+                <input type="file" id="image-upload" accept="image/png,image/jpeg,image/gif" style="display: none;" onchange="uploadImage(this)">
             </div>
 
             <div class="insert-snippets">
@@ -132,9 +135,57 @@
 .editor-toolbar {
     display: flex;
     gap: 0.5rem;
+    align-items: center;
     margin-bottom: 0.75rem;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid #e5e7eb;
+}
+
+.toolbar-divider {
+    color: #d1d5db;
+    margin: 0 0.25rem;
+}
+
+/* Image upload drop zone */
+.drop-zone {
+    border: 2px dashed #d1d5db;
+    border-radius: 6px;
+    padding: 1rem;
+    text-align: center;
+    margin-bottom: 0.75rem;
+    transition: all 0.2s;
+    background: #f9fafb;
+}
+
+.drop-zone.drag-over {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+
+.drop-zone p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.upload-status {
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+    display: none;
+}
+
+.upload-status.success {
+    display: block;
+    background: #dcfce7;
+    color: #166534;
+}
+
+.upload-status.error {
+    display: block;
+    background: #fee2e2;
+    color: #991b1b;
 }
 
 .insert-snippets {
@@ -541,11 +592,24 @@ editor.addEventListener('input', function() {
 
 function updatePreview() {
     let html = editor.value;
-    // Replace placeholders with sample data for preview
+
+    // Remove Jinja2 control blocks ({% if %}, {% else %}, {% endif %}, etc.)
+    html = html.replace(/\{%[\s\S]*?%\}/g, '');
+
+    // Replace Jinja2 variables with sample data for preview
     html = html.replace(/\[\[CUSTOMER_NAME\]\]/g, 'Sample Customer');
     html = html.replace(/\{\{\s*unsubscribe_link\s*\}\}/g, '#unsubscribe');
-    html = html.replace(/\{\{\s*logo_url\s*\}\}/g, '{{ url_for("static", filename="images/FNFWebLogo200x50.png", _external=True) }}');
-    html = html.replace(/\{\{\s*hero_image_url\s*\}\}/g, '{{ url_for("static", filename="images/FNFFront600x300.png", _external=True) }}');
+    html = html.replace(/\{\{\s*logo_url\s*\}\}/g, '/static/images/FNFWebLogo200x50.png');
+    html = html.replace(/\{\{\s*logo_base64\s*\}\}/g, '');
+    html = html.replace(/\{\{\s*hero_image_url\s*\}\}/g, '/static/images/FNFFront600x300.png');
+    html = html.replace(/\{\{\s*hero_image_base64\s*\}\}/g, '');
+    // Handle url_for patterns for static images
+    html = html.replace(/\{\{\s*url_for\([^)]*'images\/([^']+)'[^)]*\)\s*\}\}/g, '/static/images/$1');
+    // Handle url_for patterns for uploaded template images (served from uploads/images/)
+    html = html.replace(/\{\{\s*url_for\(\s*'template_image'\s*,\s*filename\s*=\s*'([^']+)'[^)]*\)\s*\}\}/g, '/template/images/$1');
+    // Remove any remaining Jinja2 variables
+    html = html.replace(/\{\{[^}]+\}\}/g, '');
+
     previewFrame.srcdoc = html;
 }
 
@@ -561,6 +625,135 @@ editor.addEventListener('keydown', function(e) {
         const end = this.selectionEnd;
         this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
         this.selectionStart = this.selectionEnd = start + 2;
+    }
+});
+
+// Image upload functionality
+function uploadImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/png', 'image/jpeg', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+        showUploadStatus('Invalid file type. Please use PNG, JPG, or GIF.', 'error');
+        return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+        showUploadStatus('File too large. Maximum size is 2MB.', 'error');
+        return;
+    }
+
+    // Upload the file
+    const formData = new FormData();
+    formData.append('image', file);
+
+    fetch('/api/template/upload-image', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Replace the hero image with uploaded image
+            replaceHeroImage(data.html_snippet);
+            showUploadStatus(`Hero image replaced: ${data.filename}`, 'success');
+            updatePreview();
+        } else {
+            showUploadStatus(data.error || 'Upload failed', 'error');
+        }
+    })
+    .catch(err => {
+        showUploadStatus('Upload failed: ' + err.message, 'error');
+    });
+
+    // Clear the input for next upload
+    input.value = '';
+}
+
+function insertAtCursor(text) {
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const before = editor.value.substring(0, start);
+    const after = editor.value.substring(end);
+    editor.value = before + text + after;
+    editor.selectionStart = editor.selectionEnd = start + text.length;
+    editor.focus();
+}
+
+function replaceHeroImage(imgTag) {
+    const html = editor.value;
+
+    // Find the hero image section
+    const heroStart = html.indexOf('<!-- Hero Image, Flush : BEGIN -->');
+    const heroEnd = html.indexOf('<!-- Hero Image, Flush : END -->');
+
+    if (heroStart === -1 || heroEnd === -1) {
+        // No hero section found, insert after header or at cursor
+        alert('No hero image section found. Inserting at cursor position.');
+        insertAtCursor(imgTag);
+        return;
+    }
+
+    // Extract the hero section content
+    const heroSection = html.substring(heroStart, heroEnd);
+
+    // Create new hero section with just the uploaded image (simple, no Jinja2 conditionals)
+    const newHeroSection = `<!-- Hero Image, Flush : BEGIN -->
+            <tr>
+              <td class="full-width-image" align="center">
+                ${imgTag}
+              </td>
+            </tr>
+            `;
+
+    // Replace the hero section
+    editor.value = html.substring(0, heroStart) + newHeroSection + html.substring(heroEnd);
+    editor.focus();
+}
+
+function showUploadStatus(message, type) {
+    // Remove any existing status
+    const existingStatus = document.querySelector('.upload-status');
+    if (existingStatus) existingStatus.remove();
+
+    // Create status element
+    const status = document.createElement('div');
+    status.className = `upload-status ${type}`;
+    status.textContent = message;
+
+    // Insert after toolbar
+    const toolbar = document.querySelector('.editor-toolbar');
+    toolbar.insertAdjacentElement('afterend', status);
+
+    // Auto-hide after 5 seconds
+    setTimeout(() => status.remove(), 5000);
+}
+
+// Drag and drop support on the editor
+editor.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    this.classList.add('drag-over');
+});
+
+editor.addEventListener('dragleave', function(e) {
+    this.classList.remove('drag-over');
+});
+
+editor.addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('drag-over');
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type.startsWith('image/')) {
+        // Trigger upload with dropped file (will replace hero image)
+        const input = document.getElementById('image-upload');
+        const dt = new DataTransfer();
+        dt.items.add(files[0]);
+        input.files = dt.files;
+        uploadImage(input);
     }
 });
 </script>

@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}Create Template{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Create New Template</h1>
+    <a href="/templates" class="btn btn-secondary">Back to Templates</a>
+</div>
+
+<div class="create-layout">
+    <div class="form-panel">
+        <form method="POST" id="create-form">
+            <div class="form-group">
+                <label for="template_name">Template Name</label>
+                <input type="text" name="template_name" id="template_name" class="form-control"
+                       placeholder="e.g., summer_sale, weekly_newsletter"
+                       pattern="[a-zA-Z0-9_]+" title="Only letters, numbers, and underscores allowed"
+                       required>
+                <small class="form-help">Use only letters, numbers, and underscores. Will be saved as {name}.html</small>
+            </div>
+
+            <div class="form-group">
+                <label>Template Type</label>
+                <div class="template-options">
+                    <label class="template-option selected" data-type="starter">
+                        <input type="radio" name="template_type" value="starter" checked>
+                        <div class="option-content">
+                            <div class="option-icon">&#128221;</div>
+                            <div class="option-text">
+                                <strong>Starter Template</strong>
+                                <span class="recommended-badge">Recommended</span>
+                                <p>Professional email layout with CSS reset, table-based 600px design, logo header, hero image section, content area, QR code marker, and compliant footer.</p>
+                            </div>
+                        </div>
+                    </label>
+
+                    <label class="template-option" data-type="blank">
+                        <input type="radio" name="template_type" value="blank">
+                        <div class="option-content">
+                            <div class="option-icon">&#128196;</div>
+                            <div class="option-text">
+                                <strong>Blank Template</strong>
+                                <p>Minimal HTML structure with only required compliance elements (unsubscribe link, address, privacy policy). Start from scratch.</p>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success btn-lg">Create Template</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="preview-panel">
+        <h3>Preview</h3>
+        <div class="preview-container">
+            <iframe id="preview-frame" frameborder="0"></iframe>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    margin: 0;
+}
+
+.create-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    min-height: 600px;
+}
+
+.form-panel {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #374151;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-help {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.template-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.template-option {
+    display: block;
+    cursor: pointer;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s;
+}
+
+.template-option:hover {
+    border-color: #93c5fd;
+    background: #f0f9ff;
+}
+
+.template-option.selected {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+
+.template-option input[type="radio"] {
+    display: none;
+}
+
+.option-content {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.option-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.option-text strong {
+    display: inline-block;
+    font-size: 1.1rem;
+    color: #1f2937;
+}
+
+.option-text p {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+.recommended-badge {
+    display: inline-block;
+    background: #dcfce7;
+    color: #166534;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
+.form-actions {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn-lg {
+    padding: 0.875rem 2rem;
+    font-size: 1.1rem;
+}
+
+.preview-panel {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.preview-panel h3 {
+    margin: 0;
+    padding: 1rem 1.5rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 1rem;
+    color: #374151;
+}
+
+.preview-container {
+    flex: 1;
+    overflow: hidden;
+    background: #e0e0e0;
+}
+
+.preview-container iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 500px;
+    border: none;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .create-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .preview-panel {
+        min-height: 400px;
+    }
+}
+</style>
+
+<script>
+// Template preview content - stored as JSON to handle special characters
+const starterPreview = {{ starter_html | tojson }};
+const blankPreview = {{ blank_html | tojson }};
+
+const previewFrame = document.getElementById('preview-frame');
+const templateOptions = document.querySelectorAll('.template-option');
+
+// Update preview when template type changes
+function updatePreview(type) {
+    let html = type === 'starter' ? starterPreview : blankPreview;
+
+    // Replace Jinja2 variables with sample values for preview
+    html = html.replace(/\[\[CUSTOMER_NAME\]\]/g, 'Sample Customer');
+    html = html.replace(/\{\{\s*unsubscribe_link\s*\}\}/g, '#unsubscribe');
+    html = html.replace(/\{\{\s*logo_url\s*\}\}/g, '/static/images/FNFWebLogo200x50.png');
+    html = html.replace(/\{\{\s*hero_image_url\s*\}\}/g, '/static/images/FNFFront600x300.png');
+    // Remove Jinja2 logic blocks (using string concat to avoid Jinja2 parsing)
+    html = html.replace(new RegExp('\\{' + '%[^%]*%\\}', 'g'), '');
+    html = html.replace(/\{\{[^}]*url_for[^}]*\}\}/g, '/static/images/FNFFront600x300.png');
+
+    previewFrame.srcdoc = html;
+}
+
+// Handle template option selection
+templateOptions.forEach(option => {
+    option.addEventListener('click', function() {
+        templateOptions.forEach(o => o.classList.remove('selected'));
+        this.classList.add('selected');
+        this.querySelector('input').checked = true;
+        updatePreview(this.dataset.type);
+    });
+});
+
+// Initial preview
+updatePreview('starter');
+
+// Validate template name
+document.getElementById('template_name').addEventListener('input', function(e) {
+    // Replace invalid characters
+    this.value = this.value.replace(/[^a-zA-Z0-9_]/g, '');
+});
+</script>
+{% endblock %}

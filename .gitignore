@@ -4,7 +4,13 @@ __pycache__/
 venv/
 .DS_Store
 *.pyc
-uploads/
+# User uploads (persisted via Railway volume in production)
+uploads/*
+!uploads/.gitkeep
+!uploads/images/
+uploads/images/*
+!uploads/images/.gitkeep
 linkedinpost.md
 FUTURE-FEATURES.md
 ZapierLite.md
+.claude/commands/

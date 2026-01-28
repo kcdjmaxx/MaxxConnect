@@ -5,8 +5,9 @@
 {% block content %}
 <h1>📝 Email Templates</h1>
 
-<div style="margin-bottom: 2rem;">
-    <a href="/template/import" class="btn">📥 Import Template</a>
+<div style="margin-bottom: 2rem; display: flex; gap: 0.75rem;">
+    <a href="/template/new" class="btn btn-success">+ Create Template</a>
+    <a href="/template/import" class="btn">Import Template</a>
 </div>
 
 {% if templates %}
