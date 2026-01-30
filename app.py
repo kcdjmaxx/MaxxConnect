@@ -2255,6 +2255,119 @@ def redemption_analytics():
         db.close()
 
 
+@app.route('/admin/stuck-campaigns')
+@auth.login_required
+def list_stuck_campaigns():
+    """List campaigns stuck in 'sending' status"""
+    db = get_db()
+    try:
+        stuck = db.query(Campaign).filter_by(status='sending').all()
+        campaigns = []
+        for c in stuck:
+            # Get the send record for progress info
+            send_record = db.query(CampaignSend).filter_by(
+                campaign_id=c.id
+            ).order_by(CampaignSend.started_at.desc()).first()
+
+            campaigns.append({
+                'id': c.id,
+                'name': c.name,
+                'has_qr_code': c.has_qr_code,
+                'emails_sent': send_record.emails_sent if send_record else 0,
+                'emails_failed': send_record.emails_failed if send_record else 0,
+                'total_emails': send_record.total_emails if send_record else 0,
+                'started_at': send_record.started_at.isoformat() if send_record and send_record.started_at else None
+            })
+
+        return render_template_string('''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stuck Campaigns</title>
+    <style>
+        body { font-family: system-ui; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #f5f5f5; }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .progress { color: #666; }
+        h1 { color: #333; }
+        .none { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>Stuck Campaigns (status = 'sending')</h1>
+    {% if campaigns %}
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Progress</th>
+            <th>Has QR</th>
+            <th>Started</th>
+            <th>Action</th>
+        </tr>
+        {% for c in campaigns %}
+        <tr>
+            <td>{{ c.id }}</td>
+            <td>{{ c.name }}</td>
+            <td class="progress">{{ c.emails_sent }}/{{ c.total_emails }} sent, {{ c.emails_failed }} failed</td>
+            <td>{{ 'Yes' if c.has_qr_code else 'No' }}</td>
+            <td>{{ c.started_at or 'Unknown' }}</td>
+            <td>
+                <form action="/admin/force-complete/{{ c.id }}" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-success" onclick="return confirm('Mark campaign as sent?')">Force Complete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p class="none">No stuck campaigns found.</p>
+    {% endif %}
+    <p><a href="/campaigns">Back to Campaigns</a></p>
+</body>
+</html>
+        ''', campaigns=campaigns)
+    finally:
+        db.close()
+
+
+@app.route('/admin/force-complete/<int:campaign_id>', methods=['POST'])
+@auth.login_required
+def force_complete_campaign(campaign_id):
+    """Force a stuck campaign to 'sent' status"""
+    db = get_db()
+    try:
+        campaign = db.query(Campaign).filter_by(id=campaign_id).first()
+        if not campaign:
+            return "Campaign not found", 404
+
+        if campaign.status != 'sending':
+            return f"Campaign status is '{campaign.status}', not 'sending'", 400
+
+        # Update campaign status
+        campaign.status = 'sent'
+        campaign.sent_date = campaign.sent_date or datetime.now()
+
+        # Update the send record
+        send_record = db.query(CampaignSend).filter_by(
+            campaign_id=campaign_id
+        ).order_by(CampaignSend.started_at.desc()).first()
+
+        if send_record:
+            send_record.status = 'completed'
+            send_record.completed_at = datetime.now()
+
+        db.commit()
+
+        return redirect('/admin/stuck-campaigns')
+    finally:
+        db.close()
+
+
 if __name__ == '__main__':
     # For development only - use proper WSGI server for production
     app.run(host='0.0.0.0', port=5001, debug=True)
