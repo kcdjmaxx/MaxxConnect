@@ -2255,6 +2255,107 @@ def redemption_analytics():
         db.close()
 
 
+@app.route('/analytics/redemptions/<int:campaign_id>')
+@auth.login_required
+def campaign_redemption_detail(campaign_id):
+    """
+    Detailed redemption list for a specific campaign
+
+    Shows all customers who redeemed, with timestamps and method.
+    """
+    from backend.services.redemption_service import (
+        get_redemption_stats,
+        get_recent_redemptions
+    )
+
+    db = get_db()
+    try:
+        # Get campaign info
+        campaign = db.query(Campaign).filter_by(id=campaign_id).first()
+        if not campaign:
+            return "Campaign not found", 404
+
+        # Get stats for this campaign
+        stats = get_redemption_stats(db, campaign_id=campaign_id)
+
+        # Get all redemptions for this campaign (not just recent)
+        redemptions = get_recent_redemptions(db, limit=1000, campaign_id=campaign_id)
+
+        return render_template_string('''
+{% extends "base.html" %}
+
+{% block title %}{{ campaign.name }} - Redemptions{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="/analytics/redemptions" style="color: #2563eb;">&larr; Back to Analytics</a>
+</div>
+
+<h1>{{ campaign.name }}</h1>
+<p style="color: #6b7280;">
+    {% if campaign.sent_date %}Sent {{ campaign.sent_date.strftime('%B %d, %Y') }}{% endif %}
+    {% if campaign.deal_description %} &bull; {{ campaign.deal_description }}{% endif %}
+</p>
+
+<!-- Stats -->
+<div class="stats" style="margin-bottom: 2rem;">
+    <div class="stat-card">
+        <h3>{{ stats.total_codes }}</h3>
+        <p>QR Codes Sent</p>
+    </div>
+    <div class="stat-card" style="border-left-color: #10b981;">
+        <h3>{{ stats.redeemed_codes }}</h3>
+        <p>Unique Redemptions</p>
+    </div>
+    <div class="stat-card" style="border-left-color: #f59e0b;">
+        <h3>{{ stats.redemption_rate }}%</h3>
+        <p>Redemption Rate</p>
+    </div>
+</div>
+
+<!-- Redemptions List -->
+<div class="card">
+    <h2>Redemptions ({{ redemptions|length }})</h2>
+    {% if redemptions %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date & Time</th>
+                <th>Customer</th>
+                <th>Email</th>
+                <th>Method</th>
+                <th>Staff</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in redemptions %}
+            <tr>
+                <td>
+                    {{ r.redeemed_at.strftime('%b %d, %Y') }}
+                    <br><small style="color: #6b7280;">{{ r.redeemed_at.strftime('%I:%M %p') }}</small>
+                </td>
+                <td><strong>{{ r.customer_name }}</strong></td>
+                <td><small>{{ r.customer_email }}</small></td>
+                <td>
+                    <span class="badge {% if r.redemption_method == 'scan' %}badge-sent{% else %}badge-scheduled{% endif %}">
+                        {{ r.redemption_method }}
+                    </span>
+                </td>
+                <td>{{ r.redeemed_by or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #6b7280; text-align: center; padding: 2rem;">No redemptions yet for this campaign.</p>
+    {% endif %}
+</div>
+{% endblock %}
+        ''', campaign=campaign, stats=stats, redemptions=redemptions)
+    finally:
+        db.close()
+
+
 @app.route('/admin/stuck-campaigns')
 @auth.login_required
 def list_stuck_campaigns():

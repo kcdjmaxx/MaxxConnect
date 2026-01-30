@@ -43,10 +43,12 @@
                 {% for campaign in campaign_stats %}
                 <tr>
                     <td>
-                        <strong>{{ campaign.campaign_name }}</strong>
-                        {% if campaign.sent_date %}
-                        <br><small style="color: #6b7280;">{{ campaign.sent_date.strftime('%b %d, %Y') }}</small>
-                        {% endif %}
+                        <a href="/analytics/redemptions/{{ campaign.campaign_id }}" style="text-decoration: none; color: inherit;">
+                            <strong style="color: #2563eb;">{{ campaign.campaign_name }}</strong>
+                            {% if campaign.sent_date %}
+                            <br><small style="color: #6b7280;">{{ campaign.sent_date.strftime('%b %d, %Y') }}</small>
+                            {% endif %}
+                        </a>
                     </td>
                     <td>{{ campaign.total_codes }}</td>
                     <td>{{ campaign.redeemed_codes }}</td>
