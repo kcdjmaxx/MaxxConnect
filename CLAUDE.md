@@ -48,9 +48,10 @@ Two services from the same repo:
 - Start command: `celery -A backend.tasks.celery_app worker --loglevel=info --concurrency=2`
 - Required env vars (copy from web): `DATABASE_URL`, `REDIS_URL`, `ENCRYPTION_KEY`, `SENDGRID_API_KEY`, `SENDER_EMAIL`, `BUSINESS_NAME`
 
-**Railway Volume (for uploaded images):**
-- Mount path: `/app/uploads/images`
-- Purpose: Persist user-uploaded template images across deploys
+**Railway Volume (for uploads):**
+- Mount path: `/app/uploads/`
+- Persists: `images/` (user-uploaded template images) and `templates/` (user-created templates)
+- Ephemeral filesystem wiped on each deploy — volume data survives
 - Setup: Railway Dashboard → Web Service → Settings → Volumes → Add Volume
 
 ## Database Schema
@@ -95,10 +96,17 @@ Start with SQLite for development, PostgreSQL for production.
 
 ## Email Template System
 
+**Two template sources:**
+- **Bundled templates:** `templates/email/` (read-only, part of deploy)
+- **User-created templates:** `uploads/templates/` (Railway volume, `user:` prefix in filenames)
+
+**Sidecar pattern:** `<name>.grapes.json` alongside `<name>.html` for GrapesJS editor state.
+
 HTML email templates use Jinja2 with these required placeholders:
-- `{{ customer_name }}` - Personalization
+- `[[CUSTOMER_NAME]]` - Personalization (replaced at send time, survives Jinja2 rendering)
 - `{{ qr_code_base64 }}` - Base64-encoded QR image
 - `{{ unsubscribe_link }}` - Legal requirement (CAN-SPAM)
+- `<!-- QR_CODE_SECTION -->` - QR code insertion point
 - Physical mailing address in footer (legal requirement)
 
 QR code tokens must be cryptographically secure with format: `{campaign_id}-{customer_id}-{random_hash}`
@@ -119,8 +127,8 @@ Complete CRUD system for email campaigns with template selection, audience targe
 
 **Campaign Workflow:**
 1. **Create Campaign** (`/campaign/new`)
-   - Select from available email templates in `templates/email/`
-   - Templates automatically discovered and listed
+   - Select from available email templates (bundled `templates/email/` + user-created `uploads/templates/`)
+   - Templates automatically discovered via `get_available_templates()`
    - Enter campaign name and subject line
    - Preview or save as draft
 
@@ -147,7 +155,7 @@ Complete CRUD system for email campaigns with template selection, audience targe
      - Sends to selected audience
      - Warning confirmation required
    - Personalization:
-     - `{{ customer_name }}` replaced with actual names
+     - `[[CUSTOMER_NAME]]` replaced with actual names at send time
      - `{{ unsubscribe_link }}` with secure token
    - Images handled based on environment:
      - Development: Base64 embedded
@@ -156,7 +164,8 @@ Complete CRUD system for email campaigns with template selection, audience targe
 4. **Delete Campaign** (`/campaign/delete/<id>`)
    - Click trash icon (🗑️)
    - Confirmation dialog required
-   - Permanently removes campaign
+   - Cascade delete order: redemptions → email_deliveries → qr_codes → campaign_sends → campaign
+   - Permanently removes campaign and all related records
 
 **Routes:**
 - `GET /campaigns` - List all campaigns
@@ -170,17 +179,50 @@ Complete CRUD system for email campaigns with template selection, audience targe
 - `POST /campaign/delete/<id>` - Delete campaign
 
 **Template System:**
-- Email templates stored in `templates/email/`
-- Auto-discovered by scanning directory
+- Bundled templates: `templates/email/` (read-only, part of deploy)
+- User-created templates: `uploads/templates/` (Railway volume, `user:` prefix in filenames)
+- `get_available_templates()` scans both directories
+- `render_campaign_template()` handles `user:` prefix → reads from uploads/ with render_template_string
 - Support Jinja2 variables:
-  - `{{ customer_name }}` - Personalization
+  - `[[CUSTOMER_NAME]]` - Personalization (replaced at send time)
   - `{{ logo_base64 }}` or `{{ logo_url }}` - Logo image
   - `{{ hero_image_base64 }}` or `{{ hero_image_url }}` - Hero banner
-  - `{{ qr_code_base64 }}` - QR code (future)
+  - `{{ qr_code_base64 }}` - QR code
   - `{{ unsubscribe_link }}` - Required unsubscribe link
+  - `<!-- QR_CODE_SECTION -->` - QR code insertion point
 - Image handling:
   - Development: Images converted to base64 via ImageHandler
   - Production: External URLs to Railway static files
+
+## Visual Template Designer (GrapesJS)
+
+**Overview:**
+Drag-and-drop email template editor using GrapesJS with newsletter preset. Standalone page (does NOT extend base.html to avoid CSS conflicts).
+
+**Key Implementation Details:**
+- GrapesJS v0.21.13 with newsletter preset via CDN (jsdelivr)
+- Plugins loaded as function references, not string names
+- UMD builds require `.default` unwrap
+- Jinja2 `{{ }}` in JS must use `{% raw %}...{% endraw %}`
+- `gjs-get-inlined-html` exports body-only — save endpoint wraps in DOCTYPE/html/head/body
+- Starter template images use `url_for(..., _external=True)` for absolute URLs
+
+**Features:**
+- Drag-and-drop text, image, button, layout blocks
+- Custom MaxxConnect blocks: Compliance Footer, QR Code Section, Customer Greeting
+- Image upload via asset manager to Railway volume
+- Save/load as JSON sidecar + inlined HTML
+- Compliance validation on save (blocks without required CAN-SPAM elements)
+- Desktop/Tablet/Mobile preview toggle
+- Ctrl+S keyboard shortcut
+- Template duplication (copies HTML + sidecar JSON with `_copy` suffix)
+
+**Routes:**
+- `GET /template/designer/<filename>` - Open visual designer for template
+- `POST /template/designer/save` - Save template (wraps body HTML in full document)
+- `POST /template/upload-image` - Upload image to Railway volume
+- `GET /template/new` - Create template (choice: visual designer or code editor)
+- `POST /template/duplicate/<filename>` - Duplicate template + sidecar JSON
 
 ## QR Code Redemption System
 
@@ -349,6 +391,16 @@ Required setup:
   - Hourly distribution chart ✓
   - Recent redemptions table ✓
 
+**Visual Template Designer:** ✅ COMPLETE
+- GrapesJS drag-and-drop editor with newsletter preset ✓
+- Custom MaxxConnect blocks (Compliance Footer, QR Section, Greeting) ✓
+- Image upload via asset manager ✓
+- Save/load as JSON sidecar + inlined HTML ✓
+- Template duplication ✓
+- Campaign dropdown includes user-created templates ✓
+- Cascade campaign deletion (redemptions → deliveries → QR → sends → campaign) ✓
+- Device preview (Desktop/Tablet/Mobile) ✓
+
 **Phase 4 - Advanced Features:** (PLANNED)
 - Bounce handling automation
 - Redemption report exports
@@ -359,15 +411,6 @@ Required setup:
   - Click to insert into template
   - Delete unused images
   - Storage usage indicator
-- **WYSIWYG Template Editor** - Visual editing mode for non-technical users
-  - Toggle between Code view and Text view
-  - Text mode edits only the main body content (not header/footer)
-  - Formatting toolbar: bold, italic, underline
-  - Text alignment: left, center, right, justify
-  - Font size controls
-  - Bullet and numbered lists
-  - Link insertion
-  - Could use TinyMCE, Quill, or similar library
 
 ## Project Structure (Recommended)
 

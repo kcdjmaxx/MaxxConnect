@@ -46,10 +46,27 @@ A custom email and SMS marketing platform designed for small businesses, featuri
 - **Redemption Tracking**: Prevent multi-use, track who redeemed when
 - **Analytics Dashboard**: Redemption rates, hourly distribution, per-campaign stats
 
+### Template Management (Complete)
+- **Template Import**: Upload HTML files with automatic placeholder injection
+- **Template Validation**: Checks for required CAN-SPAM elements (unsubscribe link, address)
+- **Template Editor**: Code editor with live preview and test email functionality
+- **Template List**: Validation status badges, edit/duplicate actions
+
+### Visual Template Designer (Complete)
+- **GrapesJS Drag-and-Drop Editor**: Newsletter preset for email-safe HTML
+- **Custom Blocks**: Compliance Footer, QR Code Section, Customer Greeting
+- **Image Upload**: Asset manager uploads to Railway volume for persistence
+- **Save/Load**: JSON sidecar files alongside inlined HTML templates
+- **Compliance Validation**: Blocks saving without required CAN-SPAM elements
+- **Device Preview**: Desktop, Tablet, and Mobile preview toggle
+- **Template Duplication**: Copy templates with HTML + sidecar JSON
+- **Campaign Integration**: User-created templates appear in campaign dropdown
+
 ### Phase 4: Advanced Features (Planned)
 - Bounce handling automation
 - Redemption report exports
 - A/B testing infrastructure
+- Image gallery for uploaded images
 
 ## Tech Stack
 
@@ -66,6 +83,8 @@ A custom email and SMS marketing platform designed for small businesses, featuri
 
 **Frontend:**
 - Jinja2 templates
+- GrapesJS v0.21.13 (visual email template editor)
+- jsQR (QR code scanning)
 - Vanilla JavaScript
 - PWA support for staff scanner
 
@@ -183,7 +202,7 @@ Visit `http://localhost:5001` in your browser.
 1. Go to **Campaigns** page
 2. Click **Create New Campaign**
 3. Enter campaign name and subject
-4. Select an email template from `templates/email/`
+4. Select an email template (bundled from `templates/email/` or user-created from visual designer)
 5. **Enable QR Code** (optional):
    - Check "Include QR Code for redemption"
    - Enter a **Deal Description** (e.g., "Buy one burger, get one FREE")
@@ -239,6 +258,23 @@ View at `/analytics/redemptions`:
 - Twilio webhook automatically processes opt-out requests
 - Webhook URL: `https://your-domain.com/sms-optout`
 
+### Managing Templates
+
+**Creating Templates:**
+1. Navigate to **Templates** page
+2. Click **Create New Template**
+3. Choose **Visual Designer** (drag-and-drop) or **Code Editor** (HTML)
+4. Visual Designer: drag blocks from panel, edit inline, upload images
+5. Code Editor: write HTML directly with live preview
+6. Save — compliance validation ensures required CAN-SPAM elements
+
+**Duplicating Templates:**
+- Click the clipboard icon (📋) on any template card
+- Creates a copy of both the HTML and GrapesJS sidecar JSON
+
+**Using Templates in Campaigns:**
+- Both bundled templates (`templates/email/`) and user-created templates (`uploads/templates/`) appear in the campaign dropdown
+
 ## Deployment to Railway
 
 ### 1. Create Project
@@ -271,7 +307,13 @@ STAFF_USERNAME=...
 STAFF_PASSWORD=...
 ```
 
-### 5. Add Celery Worker Service
+### 5. Add Volume for Uploads
+- Go to Web Service → Settings → Volumes
+- Click "Add Volume"
+- Mount path: `/app/uploads/`
+- Persists user-uploaded images and user-created templates across deploys
+
+### 6. Add Celery Worker Service
 - Click "+ New" → "Empty Service"
 - Connect same GitHub repo
 - Set start command: `celery -A backend.tasks.celery_app worker --loglevel=info --concurrency=2`
@@ -283,12 +325,12 @@ STAFF_PASSWORD=...
   - `SENDER_EMAIL`
   - `BUSINESS_NAME`
 
-### 6. Configure Twilio Webhook
+### 7. Configure Twilio Webhook
 - Go to Twilio Console → Phone Numbers → Your Number
 - Under "Messaging", set webhook URL: `https://your-app.up.railway.app/sms-optout`
 - Method: POST
 
-### 7. Deploy
+### 8. Deploy
 - Push to GitHub: `git push origin main`
 - Railway auto-deploys on every push
 
@@ -296,28 +338,41 @@ STAFF_PASSWORD=...
 
 ```
 MaxxConnect/
-├── app.py                    # Main Flask application
+├── app.py                          # Main Flask application (campaigns, templates, designer, redemption)
 ├── backend/
-│   ├── config.py             # Environment configuration
-│   ├── csv_importer.py       # CSV import logic
-│   ├── database.py           # Database connection
-│   ├── email_service.py      # SendGrid integration
-│   ├── encryption.py         # Fernet encryption
-│   ├── image_handler.py      # Image processing
-│   ├── models.py             # SQLAlchemy models
-│   ├── qr_generator.py       # QR code generation
-│   ├── sms_service.py        # Twilio integration
-│   ├── tasks.py              # Celery async tasks
-│   └── services/
-│       └── redemption_service.py  # QR validation/redemption
+│   ├── config.py                   # Environment configuration
+│   ├── csv_importer.py             # CSV import (Simple + Square formats)
+│   ├── database.py                 # Database connection
+│   ├── email_service.py            # SendGrid with CID attachment support
+│   ├── encryption.py               # Fernet AES-128 encryption
+│   ├── image_handler.py            # Base64 (dev) / External URL (prod) images
+│   ├── models.py                   # Customer, Campaign, QRCode, EmailDelivery, CampaignSend, Redemption
+│   ├── sms_service.py              # Twilio integration
+│   ├── services/
+│   │   ├── qr_generator.py         # QR code generation
+│   │   ├── rate_limiter.py         # Rate limiting service
+│   │   ├── redemption_service.py   # QR validation/redemption
+│   │   └── template_processor.py   # Template validation and auto-injection
+│   └── tasks/
+│       ├── celery_app.py           # Celery configuration
+│       ├── email_task.py           # Async email sending with delivery tracking
+│       └── sms_task.py             # Async SMS sending
 ├── templates/
-│   ├── email/                # Email campaign templates
-│   ├── staff_redeem.html     # Staff scanner PWA
-│   └── *.html                # Web UI templates
-├── static/                   # CSS, JS, images
-├── requirements.txt          # Python dependencies
-├── runtime.txt               # Python version
-└── Procfile                  # Railway deployment config
+│   ├── email/                      # Bundled email templates
+│   ├── template_designer.html      # GrapesJS standalone designer page
+│   ├── staff_redeem.html           # Staff scanner PWA
+│   └── *.html                      # Web UI templates
+├── uploads/                        # Railway volume mount (persists across deploys)
+│   ├── images/                     # User-uploaded template images
+│   └── templates/                  # User-created templates (HTML + .grapes.json sidecars)
+├── static/
+│   ├── style.css
+│   └── test_grapes.html            # Standalone GrapesJS verification page
+├── design/                         # Mini-spec design artifacts
+├── specs/                          # Human-readable specifications
+├── requirements.txt
+├── runtime.txt                     # Python 3.11
+└── Procfile                        # Railway deployment config
 ```
 
 ## Authentication

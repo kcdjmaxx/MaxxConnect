@@ -45,17 +45,22 @@ Email/SMS marketing platform with:
 - Template editor (simple textarea with live preview)
 - Template list with validation status badges
 
-### Visual Template Designer (PLANNED)
+### Visual Template Designer (IMPLEMENTED)
 **Purpose:** Drag-and-drop email template editor using GrapesJS
 **Design Elements:** crc-GrapesDesigner.md, crc-DesignerAPI.md, crc-CustomBlocks.md, seq-designer-save.md, seq-designer-load.md, ui-template-designer.md, ui-template-create-choice.md, test-Designer.md
 **Features:**
-- GrapesJS with newsletter preset for email-safe blocks
+- GrapesJS v0.21.13 with newsletter preset for email-safe blocks
 - Drag-and-drop text, image, button, layout blocks
 - Custom MaxxConnect blocks (compliance footer, QR section, greeting)
 - Image upload via asset manager to Railway volume
 - Save/load as JSON sidecar + inlined HTML
 - Coexists with code editor (mode switching)
 - Starter templates (Basic Announcement, Special Offer, Newsletter)
+- Compliance validation on save (CAN-SPAM elements required)
+- Desktop/Tablet/Mobile preview toggle
+- Template duplication (HTML + sidecar JSON with `_copy` suffix)
+- Campaign dropdown includes user-created templates via `get_available_templates()`
+- Cascade campaign deletion (redemptions → email_deliveries → qr_codes → campaign_sends → campaign)
 
 ### Customer Segmentation (PARTIAL)
 **Purpose:** Organize customers into targetable groups
@@ -310,14 +315,14 @@ Email/SMS marketing platform with:
 
 ## Summary
 
-**Status:** Phase 3 Complete + Visual Template Designer
-- CRC Cards: 20 (19 implemented, 1 planned)
-- Sequences: 16 (15 implemented, 1 planned)
-- UI Specs: 15 (12 implemented, 3 planned)
+**Status:** Phase 3 Complete + Visual Template Designer Implemented
+- CRC Cards: 20 (19 implemented, 1 planned: crc-SegmentManager)
+- Sequences: 16 (15 implemented, 1 planned: seq-segment-manage)
+- UI Specs: 15 (13 implemented, 2 planned: ui-segment-list, ui-qr-display)
 - Test Designs: 7 (complete)
 
 **Recent Updates:**
-- **Visual Template Designer (Feb 7, 2026):**
+- **Visual Template Designer (Feb 10, 2026):**
   - GrapesJS drag-and-drop email template editor with newsletter preset
   - Custom MaxxConnect blocks: Compliance Footer, QR Code Section, Customer Greeting
   - Image upload via asset manager (reuses existing endpoint)
@@ -326,7 +331,11 @@ Email/SMS marketing platform with:
   - Template creation page with editor choice (visual/code) and starter gallery
   - Template list shows designer indicators with appropriate edit buttons
   - Compliance validation on save (blocks saving without required CAN-SPAM elements)
-  - Ctrl+S keyboard shortcut, desktop/mobile preview toggle
+  - Ctrl+S keyboard shortcut, desktop/tablet/mobile preview toggle
+  - Template duplication (HTML + sidecar JSON)
+  - Campaign dropdown includes user-created templates
+  - Cascade campaign deletion fixes (foreign key constraint resolution)
+  - Starter template images use absolute URLs for email client compatibility
 - **QR Redemption System (Jan 17, 2026):**
   - Added `Redemption` model for tracking redemption events
   - Added `RedemptionService` for validate/redeem operations
