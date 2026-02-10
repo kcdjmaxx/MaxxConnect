@@ -978,6 +978,12 @@ def campaign_delete(campaign_id):
             return redirect('/campaigns')
 
         campaign_name = campaign.name
+
+        # Delete related records that reference this campaign
+        db.query(Redemption).filter_by(campaign_id=campaign_id).delete()
+        db.query(EmailDelivery).filter_by(campaign_id=campaign_id).delete()
+        db.query(QRCode).filter_by(campaign_id=campaign_id).delete()
+        db.query(CampaignSend).filter_by(campaign_id=campaign_id).delete()
         db.delete(campaign)
         db.commit()
 
