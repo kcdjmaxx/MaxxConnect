@@ -2084,6 +2084,47 @@ def template_preview(filename):
         return f"Error rendering template: {str(e)}", 500
 
 
+@app.route('/template/duplicate/<path:filename>', methods=['POST'])
+@auth.login_required
+def template_duplicate(filename):
+    """Duplicate a template as a new user template"""
+    import shutil
+
+    template_path, is_user_template = get_template_path(filename)
+    if not os.path.exists(template_path):
+        flash('Template not found', 'error')
+        return redirect('/templates')
+
+    # Generate a unique name: original_copy, original_copy_2, etc.
+    base_name = filename[5:] if filename.startswith('user:') else filename
+    if base_name.startswith('email/'):
+        base_name = base_name[6:]
+    name_part = base_name.replace('.html', '')
+
+    user_templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'templates')
+    os.makedirs(user_templates_dir, exist_ok=True)
+
+    copy_name = f'{name_part}_copy.html'
+    counter = 2
+    while os.path.exists(os.path.join(user_templates_dir, copy_name)):
+        copy_name = f'{name_part}_copy_{counter}.html'
+        counter += 1
+
+    dest_path = os.path.join(user_templates_dir, copy_name)
+
+    try:
+        shutil.copy2(template_path, dest_path)
+        # Also copy sidecar JSON if it exists
+        sidecar_path = get_sidecar_path(template_path)
+        if os.path.exists(sidecar_path):
+            shutil.copy2(sidecar_path, get_sidecar_path(dest_path))
+        flash(f'Template duplicated as "{copy_name}"', 'success')
+    except Exception as e:
+        flash(f'Error duplicating template: {str(e)}', 'error')
+
+    return redirect('/templates')
+
+
 @app.route('/template/delete/<path:filename>', methods=['POST'])
 @auth.login_required
 def template_delete(filename):

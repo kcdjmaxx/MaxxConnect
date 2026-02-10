@@ -39,6 +39,9 @@
                 <a href="/template/designer/{{ template.filename }}" class="btn btn-sm btn-designer-light" title="Open in Visual Designer">🎨</a>
                 {% endif %}
                 <a href="/template/preview/{{ template.filename }}" class="btn btn-sm" target="_blank" title="Full Preview">👁️ Preview</a>
+                <form method="POST" action="/template/duplicate/{{ template.filename }}" style="display: inline;">
+                    <button type="submit" class="btn btn-sm" title="Duplicate">📋</button>
+                </form>
                 <form method="POST" action="/template/delete/{{ template.filename }}" style="display: inline;">
                     <button type="submit" class="btn btn-sm btn-danger"
                             onclick="return confirm('Delete &quot;{{ template.name }}&quot;? This cannot be undone.')"
