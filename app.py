@@ -602,25 +602,52 @@ def test_template():
 
 def get_available_templates():
     """
-    Scan templates/email directory for available email templates
+    Scan templates/email and uploads/templates for available email templates
 
     CRC: crc-CampaignManager.md
     Sequence: seq-campaign-create.md
     """
-    templates_dir = os.path.join(app.template_folder, 'email')
     templates = []
 
+    # Bundled templates in templates/email/
+    templates_dir = os.path.join(app.template_folder, 'email')
     if os.path.exists(templates_dir):
         for filename in os.listdir(templates_dir):
             if filename.endswith('.html'):
-                # Create friendly name from filename
                 name = filename.replace('.html', '').replace('_', ' ').replace('-', ' ').title()
                 templates.append({
                     'filename': f'email/{filename}',
                     'name': name
                 })
 
+    # User-created templates in uploads/templates/
+    user_templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'templates')
+    if os.path.exists(user_templates_dir):
+        for filename in os.listdir(user_templates_dir):
+            if filename.endswith('.html') and not filename.endswith('.grapes.json'):
+                name = filename.replace('.html', '').replace('_', ' ').replace('-', ' ').title()
+                templates.append({
+                    'filename': f'user:{filename}',
+                    'name': f'{name} (Custom)'
+                })
+
     return sorted(templates, key=lambda x: x['name'])
+
+
+def render_campaign_template(template_name, **template_vars):
+    """
+    Render a template by name, handling both bundled (email/...) and user (user:...) templates.
+    Bundled templates use Flask's render_template; user templates are loaded from uploads/templates/.
+    """
+    if template_name.startswith('user:'):
+        filename = template_name[5:]  # Strip 'user:' prefix
+        user_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'templates', filename)
+        with open(user_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        return render_template_string(html_content, **template_vars)
+    else:
+        return render_template(template_name, **template_vars)
+
 
 def get_unique_segments(db):
     """
@@ -700,7 +727,7 @@ def campaign_new():
                     template_vars['logo_url'] = url_for('static', filename='images/FNFWebLogo200x50.png', _external=True)
                     template_vars['hero_image_url'] = url_for('static', filename='images/FNFFront600x300.png', _external=True)
 
-                html_content = render_template(template, **template_vars)
+                html_content = render_campaign_template(template, **template_vars)
 
                 # If QR codes enabled, inject QR placeholder HTML
                 has_qr_code = request.form.get('has_qr_code') == 'on'
@@ -887,7 +914,7 @@ def campaign_edit(campaign_id):
 
                     # Use new template if changed, otherwise use existing
                     template_to_render = template if template != campaign.template_name else campaign.template_name
-                    html_content = render_template(template_to_render, **template_vars)
+                    html_content = render_campaign_template(template_to_render, **template_vars)
 
                     # If QR codes enabled, inject QR placeholder HTML
                     if new_has_qr_code:
