@@ -31,7 +31,13 @@
                 {% endif %}
             </div>
             <div class="template-actions">
+                {% if template.has_designer %}
+                <a href="/template/designer/{{ template.filename }}" class="btn btn-sm btn-designer" title="Visual Designer">🎨 Design</a>
+                <a href="/template/edit/{{ template.filename }}" class="btn btn-sm" title="Code Editor">✏️ Code</a>
+                {% else %}
                 <a href="/template/edit/{{ template.filename }}" class="btn btn-sm" title="Edit">✏️ Edit</a>
+                <a href="/template/designer/{{ template.filename }}" class="btn btn-sm btn-designer-light" title="Open in Visual Designer">🎨</a>
+                {% endif %}
                 <a href="/template/preview/{{ template.filename }}" class="btn btn-sm" target="_blank" title="Full Preview">👁️ Preview</a>
                 <form method="POST" action="/template/delete/{{ template.filename }}" style="display: inline;">
                     <button type="submit" class="btn btn-sm btn-danger"
@@ -134,6 +140,24 @@
 .badge-danger {
     background: #fee2e2;
     color: #991b1b;
+}
+
+.btn-designer {
+    background: #7c3aed;
+    color: white;
+    border: none;
+}
+.btn-designer:hover {
+    background: #6d28d9;
+    color: white;
+}
+.btn-designer-light {
+    background: #f3e8ff;
+    color: #7c3aed;
+    border: 1px solid #ddd6fe;
+}
+.btn-designer-light:hover {
+    background: #ede9fe;
 }
 </style>
 {% endblock %}

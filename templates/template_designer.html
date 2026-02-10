@@ -1,0 +1,336 @@
+<!-- CRC: crc-GrapesDesigner.md | Seq: seq-designer-save.md, seq-designer-load.md -->
+<!-- UI: ui-template-designer.md -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Designer - {{ filename }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/grapesjs@0.21.13/dist/css/grapes.min.css">
+    <style>
+        /* Minimal reset - scoped to NOT break GrapesJS */
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+        /* Designer header bar */
+        .designer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.4rem 1rem;
+            background: #fff;
+            border-bottom: 1px solid #e5e7eb;
+            z-index: 10;
+        }
+        .designer-header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .designer-header-left h1 {
+            margin: 0;
+            font-size: 1rem;
+            color: #374151;
+            font-weight: 600;
+        }
+        .designer-header-right {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Buttons */
+        .btn { display: inline-block; padding: 0.35rem 0.75rem; border-radius: 5px; text-decoration: none; font-size: 0.8rem; cursor: pointer; border: 1px solid #d1d5db; background: #f9fafb; color: #374151; font-weight: 500; }
+        .btn:hover { background: #f3f4f6; }
+        .btn-success { background: #10b981; color: #fff; border-color: #10b981; }
+        .btn-success:hover { background: #059669; }
+        .btn-secondary { background: #f9fafb; color: #6b7280; }
+
+        /* Validation panel */
+        .validation-panel {
+            padding: 0.6rem 1rem;
+            position: relative;
+            font-size: 0.8rem;
+            display: none;
+        }
+        .validation-panel.valid { background: #dcfce7; border-bottom: 1px solid #86efac; color: #166534; }
+        .validation-panel.errors { background: #fee2e2; border-bottom: 1px solid #fca5a5; color: #991b1b; }
+        .validation-panel.warnings { background: #fef3c7; border-bottom: 1px solid #fcd34d; color: #92400e; }
+        .validation-close { position: absolute; top: 0.4rem; right: 0.75rem; background: none; border: none; font-size: 1.1rem; cursor: pointer; color: inherit; opacity: 0.7; }
+        .validation-close:hover { opacity: 1; }
+        .validation-panel ul { margin: 0.2rem 0 0 1.25rem; padding: 0; }
+        .validation-panel li { margin-bottom: 0.1rem; }
+
+        /* Ensure body/html fill viewport for GrapesJS height inheritance */
+        html, body {
+            height: 100%;
+        }
+
+        /* GrapesJS editor fills remaining viewport */
+        #gjs {
+            height: calc(100vh - 50px) !important;
+            overflow: hidden;
+        }
+
+        /* Save button states */
+        #save-btn.saving { opacity: 0.7; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div class="designer-header">
+        <div class="designer-header-left">
+            <a href="/templates" class="btn btn-secondary">&larr; Templates</a>
+            <h1>{{ filename }}</h1>
+        </div>
+        <div class="designer-header-right">
+            <a href="/template/edit/{{ filename }}" class="btn btn-secondary" id="switch-to-code"
+               onclick="return confirm('Switch to Code Editor? Visual designer metadata will be lost if you edit in code mode.')">
+                Code Editor
+            </a>
+            <button class="btn btn-success" id="save-btn" onclick="saveDesign()">Save</button>
+        </div>
+    </div>
+
+    <div id="validation-panel" class="validation-panel">
+        <div id="validation-content"></div>
+        <button class="validation-close" onclick="this.parentElement.style.display='none'">&times;</button>
+    </div>
+
+    <div id="gjs"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/grapesjs@0.21.13"></script>
+    <script src="https://cdn.jsdelivr.net/npm/grapesjs-preset-newsletter@1.0.2"></script>
+
+    <script>
+    // CRC: crc-GrapesDesigner.md | CRC: crc-CustomBlocks.md
+    document.addEventListener('DOMContentLoaded', function() {
+        // ── Pre-init guards ──────────────────────────────────────────
+        if (typeof grapesjs === 'undefined') {
+            console.error('GrapesJS failed to load from CDN');
+            document.getElementById('gjs').innerHTML = '<p style="padding:2rem;color:red;">Error: GrapesJS library failed to load. Check your internet connection.</p>';
+            return;
+        }
+        var presetPlugin = window['grapesjs-preset-newsletter'];
+        // UMD builds of ES modules wrap default export: { default: fn }
+        if (presetPlugin && typeof presetPlugin === 'object' && typeof presetPlugin.default === 'function') {
+            presetPlugin = presetPlugin.default;
+        }
+        if (typeof presetPlugin !== 'function') {
+            console.error('GrapesJS Newsletter Preset failed to load. typeof =', typeof presetPlugin);
+        }
+
+        var FILENAME = {{ filename | tojson }};
+        var PROJECT_JSON = {{ project_json | tojson }};
+        var RAW_HTML = {{ raw_html | tojson }};
+
+        // ── Build plugin config ──────────────────────────────────────
+        var pluginsList = [];
+        var pluginsOptsList = {};
+        if (typeof presetPlugin === 'function') {
+            pluginsList.push(presetPlugin);
+            pluginsOptsList['grapesjs-preset-newsletter'] = {
+                modalLabelImport: 'Paste your HTML here and click Import',
+                modalLabelExport: 'Copy the code and use it in your campaign',
+                importPlaceholder: '<table class="table"><tr><td class="cell">Hello world!</td></tr></table>',
+                cellStyle: {
+                    'font-size': '12px',
+                    'font-weight': 300,
+                    'vertical-align': 'top',
+                    color: 'rgb(111, 119, 125)',
+                    margin: 0,
+                    padding: 0
+                }
+            };
+        }
+
+        // ── Initialize GrapesJS ──────────────────────────────────────
+        var editor = grapesjs.init({
+            container: '#gjs',
+            fromElement: false,
+            height: 'calc(100vh - 50px)',
+            width: 'auto',
+            storageManager: false,
+            plugins: pluginsList,
+            pluginsOpts: pluginsOptsList,
+            assetManager: {
+                upload: false,
+                autoAdd: true,
+                assets: {{ existing_images | tojson }},
+                uploadFile: function(e) {
+                    var files = e.dataTransfer ? e.dataTransfer.files : e.target.files;
+                    if (!files || files.length === 0) return;
+
+                    for (var i = 0; i < files.length; i++) {
+                        var formData = new FormData();
+                        formData.append('image', files[i]);
+
+                        fetch('/api/template/upload-image', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(function(res) { return res.json(); })
+                        .then(function(data) {
+                            if (data.success) {
+                                editor.AssetManager.add(data.url);
+                            } else {
+                                console.error('Upload failed:', data.error);
+                                alert('Upload failed: ' + (data.error || 'Unknown error'));
+                            }
+                        })
+                        .catch(function(err) {
+                            console.error('Upload error:', err);
+                            alert('Upload failed: ' + err.message);
+                        });
+                    }
+                }
+            },
+            canvas: {
+                styles: [],
+                scripts: []
+            },
+            deviceManager: {
+                devices: [
+                    { name: 'Desktop', width: '' },
+                    { name: 'Mobile', width: '320px', widthMedia: '480px' }
+                ]
+            }
+        });
+
+        // ── Register Custom MaxxConnect Blocks ────────────────────────
+        // CRC: crc-CustomBlocks.md
+        var bm = editor.BlockManager;
+
+        bm.add('maxx-preheader', {
+            label: 'Preheader Text',
+            category: 'MaxxConnect',
+            attributes: { class: 'fa fa-eye-slash', title: 'Preheader Text (hidden preview text)' },
+            content: '<div style="display:none;font-size:1px;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;mso-hide:all;font-family: sans-serif;">' +
+                'Preview text that shows in the inbox before opening the email. Edit this!' +
+                '</div>'
+        });
+
+        bm.add('maxx-compliance-footer', {
+            label: 'Compliance Footer',
+            category: 'MaxxConnect',
+            attributes: { class: 'fa fa-legal', title: 'Compliance Footer' },
+            content: '<table cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px;">' +
+                '<tr><td style="padding: 30px 10px; font-family: sans-serif; font-size: 12px; line-height: 18px; text-align: center; color: #888888;">' +
+                '<p style="margin: 0 0 10px 0;">Fric &amp; Frac<br>1700 West 39th St. Kansas City, MO 64111</p>' +
+                '<p style="margin: 0;">' +
+                '<a href="{% raw %}{{ unsubscribe_link }}{% endraw %}" style="color: #888888; text-decoration: underline;">Unsubscribe</a>' +
+                ' &nbsp;|&nbsp; ' +
+                '<a href="https://fricandfrac.net/privacy/" style="color: #888888; text-decoration: underline;">Privacy Policy</a>' +
+                '</p></td></tr></table>'
+        });
+
+        bm.add('maxx-qr-section', {
+            label: 'QR Code Section',
+            category: 'MaxxConnect',
+            attributes: { class: 'fa fa-qrcode', title: 'QR Code Section' },
+            content: '<table cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px;">' +
+                '<tr><td style="padding: 20px; text-align: center; font-family: sans-serif;">' +
+                '<!-- QR_CODE_SECTION -->' +
+                '<p style="color: #888888; font-size: 14px;">[QR Code will appear here when campaign is sent]</p>' +
+                '</td></tr></table>'
+        });
+
+        bm.add('maxx-greeting', {
+            label: 'Customer Greeting',
+            category: 'MaxxConnect',
+            attributes: { class: 'fa fa-user', title: 'Customer Greeting' },
+            content: '<table cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px;">' +
+                '<tr><td style="padding: 20px 20px 0 20px; font-family: sans-serif;">' +
+                '<h1 style="color: #2c3e50; font-size: 28px; margin: 0; font-family: sans-serif;">Hello, [[CUSTOMER_NAME]]!</h1>' +
+                '</td></tr></table>'
+        });
+
+        // ── Load Template Data ───────────────────────────────────────
+        // Seq: seq-designer-load.md
+        if (PROJECT_JSON) {
+            editor.loadProjectData(PROJECT_JSON);
+        } else if (RAW_HTML) {
+            editor.setComponents(RAW_HTML);
+        }
+
+        // ── Save Design ──────────────────────────────────────────────
+        // Seq: seq-designer-save.md
+        window.saveDesign = function() {
+            var saveBtn = document.getElementById('save-btn');
+            saveBtn.textContent = 'Saving...';
+            saveBtn.classList.add('saving');
+
+            var resetBtn = function() {
+                saveBtn.textContent = 'Save';
+                saveBtn.classList.remove('saving');
+            };
+
+            // Get inlined HTML from the editor
+            var html = editor.runCommand('gjs-get-inlined-html');
+
+            fetch('/api/template/save-design', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    filename: FILENAME,
+                    html: html,
+                    project_data: editor.getProjectData()
+                })
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) { resetBtn(); showValidation(data); })
+            .catch(function(err) {
+                resetBtn();
+                showValidation({
+                    success: false,
+                    report: { errors: ['Network error: ' + err.message], warnings: [], info: [] }
+                });
+            });
+        };
+
+        // ── Validation Display ───────────────────────────────────────
+        function listItems(items) {
+            return '<ul>' + items.map(function(i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
+        }
+
+        function showValidation(data) {
+            var panel = document.getElementById('validation-panel');
+            var content = document.getElementById('validation-content');
+            var report = data.report || {};
+
+            panel.style.display = 'block';
+            panel.className = 'validation-panel';
+
+            if (data.success) {
+                if (report.warnings && report.warnings.length > 0) {
+                    panel.classList.add('warnings');
+                    var html = '<strong>Saved with warnings:</strong>' + listItems(report.warnings);
+                    if (report.info && report.info.length > 0) {
+                        html += '<strong>Suggestions:</strong>' + listItems(report.info);
+                    }
+                    content.innerHTML = html;
+                } else {
+                    panel.classList.add('valid');
+                    content.innerHTML = '<strong>Template saved successfully!</strong>';
+                    setTimeout(function() { panel.style.display = 'none'; }, 3000);
+                }
+            } else {
+                panel.classList.add('errors');
+                var html = '<strong>Cannot save - fix these issues:</strong>';
+                if (report.errors) html += listItems(report.errors);
+                if (report.warnings && report.warnings.length > 0) {
+                    html += '<strong>Warnings:</strong>' + listItems(report.warnings);
+                }
+                content.innerHTML = html;
+            }
+        }
+
+        // ── Keyboard shortcut: Ctrl+S to save ────────────────────────
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                window.saveDesign();
+            }
+        });
+
+    });
+    </script>
+</body>
+</html>

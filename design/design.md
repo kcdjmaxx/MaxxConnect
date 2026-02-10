@@ -45,6 +45,18 @@ Email/SMS marketing platform with:
 - Template editor (simple textarea with live preview)
 - Template list with validation status badges
 
+### Visual Template Designer (PLANNED)
+**Purpose:** Drag-and-drop email template editor using GrapesJS
+**Design Elements:** crc-GrapesDesigner.md, crc-DesignerAPI.md, crc-CustomBlocks.md, seq-designer-save.md, seq-designer-load.md, ui-template-designer.md, ui-template-create-choice.md, test-Designer.md
+**Features:**
+- GrapesJS with newsletter preset for email-safe blocks
+- Drag-and-drop text, image, button, layout blocks
+- Custom MaxxConnect blocks (compliance footer, QR section, greeting)
+- Image upload via asset manager to Railway volume
+- Save/load as JSON sidecar + inlined HTML
+- Coexists with code editor (mode switching)
+- Starter templates (Basic Announcement, Special Offer, Newsletter)
+
 ### Customer Segmentation (PARTIAL)
 **Purpose:** Organize customers into targetable groups
 **Design Elements:** crc-Customer.md, crc-SegmentManager.md
@@ -155,6 +167,12 @@ Email/SMS marketing platform with:
   - [x] app.py (redemption_analytics route)
 - crc-TemplateProcessor.md
   - [x] backend/services/template_processor.py
+- crc-GrapesDesigner.md
+  - [x] templates/template_designer.html
+- crc-DesignerAPI.md
+  - [x] app.py (designer routes)
+- crc-CustomBlocks.md
+  - [x] templates/template_designer.html (custom blocks inline in designer)
 - crc-Redemption.md
   - [x] backend/models.py (Redemption class)
 - crc-RedemptionService.md
@@ -195,6 +213,12 @@ Email/SMS marketing platform with:
 - seq-template-import.md
   - [x] app.py (template routes)
   - [x] backend/services/template_processor.py
+- seq-designer-save.md
+  - [x] app.py (designer save route)
+  - [x] templates/template_designer.html
+- seq-designer-load.md
+  - [x] app.py (designer load route)
+  - [x] templates/template_designer.html
 
 ### UI Specs
 - ui-campaign-list.md
@@ -221,6 +245,10 @@ Email/SMS marketing platform with:
   - [x] templates/template_import.html
 - ui-template-edit.md
   - [x] templates/template_edit.html
+- ui-template-designer.md
+  - [x] templates/template_designer.html
+- ui-template-create-choice.md
+  - [x] templates/template_create.html
 
 ### Test Designs
 - test-Campaign.md
@@ -229,37 +257,76 @@ Email/SMS marketing platform with:
 - test-Segmentation.md
 - test-Analytics.md
 - test-UI.md
+- test-Designer.md
 - See traceability-tests.md for test-to-code mapping
 
 ## Gaps
 
-### Spec to Design
-- All Phase 2 requirements have corresponding CRC cards and sequences
-- Phase 3 analytics designed but not implemented
+### Spec→Requirements (Sn)
+- [x] ~~S1: Phase 1 specs captured in requirements.md~~
+- [x] ~~S2: Phase 2 specs captured in requirements.md~~
+- [x] ~~S3: Phase 3 specs captured in requirements.md~~
 
-### Design to Code
-- [x] ~~B1: Campaign model needs Phase 2 fields~~ (has_qr_code implemented)
-- [x] ~~B2: QRCode model not yet created~~ (implemented)
-- [ ] B3: Customer.segments helpers missing (get_segments_list, add_segment, etc.)
-- [x] ~~B4: No backend/services/ directory yet~~ (qr_generator.py, rate_limiter.py)
-- [x] ~~B5: No Celery infrastructure yet~~ (implemented and deployed)
+### Requirements→Design (Rn)
+- [x] ~~R1: R19-R23 (segmentation) have crc-SegmentManager.md~~
+- [ ] R2: R59 (bounce handling) needs design artifacts - Phase 4
+- [ ] R3: R60 (A/B testing) needs design artifacts - Phase 4
+- [ ] R4: R61 (open rate tracking) needs design artifacts - Phase 4
 
-### Code to Design
-- [x] crc-EmailService.md created for CID attachment support
+### Design→Code (Dn)
+- [x] ~~D1: Campaign model needs Phase 2 fields~~ (has_qr_code implemented)
+- [x] ~~D2: QRCode model not yet created~~ (implemented)
+- [ ] D3: Customer.segments helpers missing (get_segments_list, add_segment, etc.) - R19-R23
+- [x] ~~D4: No backend/services/ directory yet~~ (qr_generator.py, rate_limiter.py)
+- [x] ~~D5: No Celery infrastructure yet~~ (implemented and deployed)
+- [ ] D6: crc-SegmentManager.md not implemented - Phase 2 partial
+- [ ] D7: ui-segment-list.md not implemented - Phase 2 partial
 
-### Deferred
-- Webhook handling for bounces: Phase 4
-- ui-qr-display.md: iOS native scanner app (web PWA implemented instead)
+### Code→Design (Cn)
+- [x] ~~C1: crc-EmailService.md created for CID attachment support~~
+
+### Oversights (On)
+- [ ] O1: Webhook handling for bounces deferred to Phase 4
+- [ ] O2: ui-qr-display.md: iOS native scanner app (web PWA implemented instead)
+- [ ] O3: R32 (CSV export for campaign reports) not designed
+- [ ] O4: Test coverage gaps - no automated tests implemented
+- [x] ~~O5: Template import/editing needs improvement~~ (GrapesJS visual designer implemented)
+
+### Visual Template Designer (Feb 2026)
+
+#### Design→Code (Dn)
+- [x] ~~D8: GrapesJS designer page~~ (templates/template_designer.html)
+- [x] ~~D9: Designer API routes~~ (app.py designer routes)
+- [x] ~~D10: Custom blocks~~ (inline in template_designer.html)
+- [x] ~~D11: Template creation editor choice~~ (templates/template_create.html updated)
+- [x] ~~D12: Template list designer indicators~~ (templates/template_list.html updated)
+
+#### Oversights (On)
+- [ ] O6: Starter template JSON presets not yet built (users start from empty canvas with blocks)
+  - Basic Announcement, Special Offer, Newsletter starters return None
+  - Users build from blocks, which works but is less guided
+- [ ] O7: No automated tests for designer routes
+- [ ] O8: GrapesJS CDN dependency - should pin versions for production stability
 
 ## Summary
 
-**Status:** Phase 3 Complete (QR Redemption System Implemented)
-- CRC Cards: 17 (16 implemented, 1 planned)
-- Sequences: 14 (13 implemented, 1 planned)
-- UI Specs: 13 (10 implemented, 3 planned)
-- Test Designs: 6 (complete)
+**Status:** Phase 3 Complete + Visual Template Designer
+- CRC Cards: 20 (19 implemented, 1 planned)
+- Sequences: 16 (15 implemented, 1 planned)
+- UI Specs: 15 (12 implemented, 3 planned)
+- Test Designs: 7 (complete)
 
 **Recent Updates:**
+- **Visual Template Designer (Feb 7, 2026):**
+  - GrapesJS drag-and-drop email template editor with newsletter preset
+  - Custom MaxxConnect blocks: Compliance Footer, QR Code Section, Customer Greeting
+  - Image upload via asset manager (reuses existing endpoint)
+  - Save/load as JSON sidecar + inlined HTML
+  - Mode switching between visual designer and code editor
+  - Template creation page with editor choice (visual/code) and starter gallery
+  - Template list shows designer indicators with appropriate edit buttons
+  - Compliance validation on save (blocks saving without required CAN-SPAM elements)
+  - Ctrl+S keyboard shortcut, desktop/mobile preview toggle
 - **QR Redemption System (Jan 17, 2026):**
   - Added `Redemption` model for tracking redemption events
   - Added `RedemptionService` for validate/redeem operations

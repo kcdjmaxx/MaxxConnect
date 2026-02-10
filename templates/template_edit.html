@@ -5,7 +5,14 @@
 {% block content %}
 <div class="editor-header">
     <h1>✏️ Edit Template: {{ filename }}</h1>
-    <a href="/templates" class="btn btn-secondary">← Back to Templates</a>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="/template/designer/{{ route_filename }}" class="btn"
+           style="background: #7c3aed; color: white;"
+           onclick="return confirm('Switch to Visual Designer? This will import the current HTML into the drag-and-drop editor.')">
+            🎨 Visual Designer
+        </a>
+        <a href="/templates" class="btn btn-secondary">← Back to Templates</a>
+    </div>
 </div>
 
 <div class="editor-layout">
@@ -399,8 +406,9 @@ const editor = document.getElementById('html_content');
 const previewFrame = document.getElementById('preview-frame');
 
 // Code snippets for required elements
+{% raw %}
 const snippets = {
-    unsubscribe: `<a href="{{ unsubscribe_link }}" style="color: #888888; text-decoration: underline;">Unsubscribe</a>`,
+    unsubscribe: `<a href="{{ unsubscribe_link }}" style="color: #888888; text-decoration: underline;">Unsubscribe</a>`,{% endraw %}
 
     address: `<p style="margin: 10px 0; font-size: 12px; color: #888888;">
   Fric &amp; Frac<br>

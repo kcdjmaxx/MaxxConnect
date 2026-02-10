@@ -37,6 +37,17 @@ tags:
 | `/signup` | PublicSignup | No | Public subscription form | Implemented |
 | `/unsubscribe` | Unsubscribe | No | Email unsubscribe handler | Implemented |
 | `/sms-optout` | SMSOptout | No | SMS opt-out handler (Twilio webhook) | Implemented |
+| `/templates` | TemplateList | Yes | Template gallery with validation badges | Implemented |
+| `/template/new` | TemplateCreate | Yes | Create template (editor choice) | Implemented (to modify) |
+| `/template/import` | TemplateImport | Yes | Import HTML template wizard | Implemented |
+| `/template/edit/<filename>` | TemplateEdit | Yes | Code editor with live preview | Implemented |
+| `/template/designer/<filename>` | TemplateDesigner | Yes | GrapesJS visual designer | Planned |
+| `/template/preview/<filename>` | TemplatePreview | Yes | Preview with sample data | Implemented |
+| `/template/delete/<filename>` | TemplateDelete | Yes | Delete template + sidecar | Implemented (to modify) |
+| `/api/template/save-design` | DesignerSaveAPI | Yes | Save JSON + HTML from designer | Planned |
+| `/api/template/load-design/<filename>` | DesignerLoadAPI | Yes | Load project JSON for designer | Planned |
+| `/api/template/upload-image` | ImageUploadAPI | Yes | Upload image for templates | Implemented |
+| `/template/images/<filename>` | ImageServe | No | Serve uploaded images | Implemented |
 
 **Auth:** HTTP Basic Auth via flask-httpauth. See cross-cutting: Authentication in design.md.
 
@@ -58,6 +69,11 @@ base.html
   |-- redemption_analytics.html    [Phase 3]
   |-- email/
   |     |-- monday_special.html    [sample template]
+  |-- template_list.html             [template gallery]
+  |-- template_create.html           [create with editor choice]
+  |-- template_import.html           [import wizard]
+  |-- template_edit.html             [code editor]
+  |-- template_designer.html         [GrapesJS visual designer - PLANNED]
   |-- segments/
   |     |-- list.html              [PLANNED Phase 2]
 

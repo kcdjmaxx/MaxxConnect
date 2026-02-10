@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GrapesJS Static Test</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/grapesjs@0.21.13/dist/css/grapes.min.css">
+    <style>
+        body { margin: 0; }
+        #status { padding: 0.5rem 1rem; font-family: monospace; font-size: 13px; background: #f0f0f0; border-bottom: 1px solid #ccc; }
+        #status .ok { color: green; }
+        #status .fail { color: red; }
+        #gjs { height: calc(100vh - 32px); overflow: hidden; }
+    </style>
+</head>
+<body>
+    <div id="status">Loading...</div>
+    <div id="gjs"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/grapesjs@0.21.13"></script>
+    <script src="https://cdn.jsdelivr.net/npm/grapesjs-preset-newsletter@1.0.2"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var statusEl = document.getElementById('status');
+        var checks = [];
+
+        // Check GrapesJS loaded
+        if (typeof grapesjs === 'undefined') {
+            checks.push('<span class="fail">grapesjs: NOT LOADED</span>');
+        } else {
+            checks.push('<span class="ok">grapesjs: loaded (typeof=' + typeof grapesjs + ')</span>');
+        }
+
+        // Check preset loaded - UMD builds of ES modules wrap default export: { default: fn }
+        var preset = window['grapesjs-preset-newsletter'];
+        if (preset && typeof preset === 'object' && typeof preset.default === 'function') {
+            preset = preset.default;
+        }
+        if (typeof preset !== 'function') {
+            checks.push('<span class="fail">preset: NOT LOADED (typeof=' + typeof preset + ')</span>');
+        } else {
+            checks.push('<span class="ok">preset: loaded (typeof=function)</span>');
+        }
+
+        statusEl.innerHTML = checks.join(' | ');
+
+        if (typeof grapesjs === 'undefined') {
+            document.getElementById('gjs').innerHTML = '<p style="padding:2rem;color:red;">GrapesJS failed to load. Check console and network tab.</p>';
+            return;
+        }
+
+        // Initialize editor
+        var pluginsList = [];
+        var pluginsOpts = {};
+        if (typeof preset === 'function') {
+            pluginsList.push(preset);
+            pluginsOpts['grapesjs-preset-newsletter'] = {
+                modalLabelImport: 'Paste HTML here',
+                modalLabelExport: 'Copy the code'
+            };
+        }
+
+        var editor = grapesjs.init({
+            container: '#gjs',
+            fromElement: false,
+            height: '100%',
+            width: 'auto',
+            storageManager: false,
+            plugins: pluginsList,
+            pluginsOpts: pluginsOpts
+        });
+
+        statusEl.innerHTML += ' | <span class="ok">editor: initialized</span>';
+    });
+    </script>
+</body>
+</html>

@@ -1316,12 +1316,14 @@ def template_list():
     bundled_templates = processor.list_templates(app.template_folder)
     for t in bundled_templates:
         t['is_user_template'] = False
+        t['has_designer'] = os.path.exists(get_sidecar_path(t['path']))
 
     # Get user-created templates
     user_templates_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
     user_templates = processor.list_templates(user_templates_dir, subfolder='templates')
     for t in user_templates:
         t['is_user_template'] = True
+        t['has_designer'] = os.path.exists(get_sidecar_path(t['path']))
         t['filename'] = 'user:' + t['filename']  # Prefix to distinguish
 
     # Combine and sort
@@ -1346,6 +1348,7 @@ def template_new():
     if request.method == 'POST':
         template_name = request.form.get('template_name', '').strip()
         template_type = request.form.get('template_type', 'starter')
+        editor_mode = request.form.get('editor_mode', 'code')
 
         # Validate template name
         if not template_name:
@@ -1376,7 +1379,12 @@ def template_new():
             flash(f'Template "{safe_name}" already exists. Please choose a different name.', 'error')
             return redirect('/template/new')
 
-        # Get the appropriate template content
+        # Route to visual designer if selected
+        if editor_mode == 'visual':
+            starter = request.form.get('starter_template', 'basic-announcement')
+            return redirect(f'/template/designer/new?name=user:{safe_name}&starter={starter}')
+
+        # Code editor path: create file and redirect
         if template_type == 'blank':
             html_content = processor.get_blank_template()
         else:
@@ -1453,11 +1461,13 @@ def api_template_upload_image():
         # When the template is rendered at send time, this becomes the correct full URL
         html_snippet = f'<img src="{{{{ url_for(\'template_image\', filename=\'{new_filename}\', _external=True) }}}}" width="600" alt="{original_name}" border="0" style="width: 100%; max-width: 600px; height: auto;">'
 
+        image_url = url_for('template_image', filename=new_filename, _external=True)
         return {
             'success': True,
             'filename': new_filename,
-            'url': url_for('template_image', filename=new_filename, _external=True),
-            'html_snippet': html_snippet
+            'url': image_url,
+            'html_snippet': html_snippet,
+            'data': [image_url]  # GrapesJS asset manager expected format
         }
     except Exception as e:
         return {'success': False, 'error': str(e)}, 500
@@ -1496,6 +1506,276 @@ def template_image(filename):
         response.headers['Content-Type'] = content_type
         response.headers['Cache-Control'] = 'public, max-age=31536000'
         return response
+
+
+# ── Visual Template Designer Routes ──────────────────────────────
+# CRC: crc-DesignerAPI.md | CRC: crc-GrapesDesigner.md
+
+
+@app.route('/template/designer/<path:filename>')
+@auth.login_required
+def template_designer(filename):
+    """
+    Visual drag-and-drop template designer using GrapesJS
+
+    Seq: seq-designer-load.md
+    UI: ui-template-designer.md
+    """
+    import json
+
+    # Get list of existing uploaded images for asset manager
+    images_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'images')
+    existing_images = []
+    if os.path.exists(images_dir):
+        for img_file in sorted(os.listdir(images_dir)):
+            if img_file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+                existing_images.append(
+                    url_for('template_image', filename=img_file, _external=True)
+                )
+
+    # Handle new template creation with starter
+    if filename == 'new':
+        template_name = request.args.get('name', '')
+        starter = request.args.get('starter', 'basic-announcement')
+
+        # Load starter HTML for the visual designer
+        raw_html = get_starter_html(starter)
+        return render_template('template_designer.html',
+                             filename=template_name,
+                             project_json=None,
+                             raw_html=raw_html,
+                             existing_images=existing_images)
+
+    # Existing template - resolve path
+    template_path, is_user_template = get_template_path(filename)
+    if not os.path.exists(template_path):
+        flash('Template not found', 'error')
+        return redirect('/templates')
+
+    # Check for sidecar JSON
+    sidecar_path = get_sidecar_path(template_path)
+    project_json = None
+    raw_html = None
+
+    if os.path.exists(sidecar_path):
+        with open(sidecar_path, 'r', encoding='utf-8') as f:
+            project_json = json.load(f)
+    else:
+        with open(template_path, 'r', encoding='utf-8') as f:
+            raw_html = f.read()
+
+    return render_template('template_designer.html',
+                         filename=filename,
+                         project_json=project_json,
+                         raw_html=raw_html,
+                         existing_images=existing_images)
+
+
+@app.route('/api/template/save-design', methods=['POST'])
+@auth.login_required
+def api_template_save_design():
+    """
+    Save template from visual designer: JSON sidecar + inlined HTML
+
+    Seq: seq-designer-save.md
+    """
+    import json
+    from backend.services.template_processor import TemplateProcessor
+
+    data = request.get_json()
+    if not data:
+        return {'success': False, 'error': 'No data provided'}, 400
+
+    filename = data.get('filename', '')
+    html_content = data.get('html', '')
+    project_data = data.get('project_data', {})
+
+    if not filename or not html_content:
+        return {'success': False, 'error': 'Filename and HTML are required'}, 400
+
+    # GrapesJS gjs-get-inlined-html exports body content only (no DOCTYPE/html/head/body).
+    # Wrap in a proper email document structure if missing.
+    if '<!doctype' not in html_content.lower() and '<html' not in html_content.lower():
+        html_content = ('<!DOCTYPE html>\n<html>\n<head>\n'
+                        '<meta charset="UTF-8">\n'
+                        '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+                        '</head>\n<body>\n'
+                        + html_content +
+                        '\n</body>\n</html>')
+
+    # Validate the exported HTML
+    processor = TemplateProcessor()
+    report = processor.validate(html_content)
+
+    report_dict = {
+        'is_valid': report.is_valid,
+        'errors': report.errors,
+        'warnings': report.warnings,
+        'info': report.info
+    }
+
+    # Block save if required elements are missing
+    if not report.is_valid:
+        return {
+            'success': False,
+            'report': report_dict,
+            'error': 'Template has validation errors'
+        }
+
+    # Resolve file path - use get_template_path for existing templates,
+    # user templates (user: prefix or no path separator) go to uploads/templates/
+    if filename.startswith('user:') or '/' not in filename:
+        safe_name = filename[5:] if filename.startswith('user:') else filename
+        if not safe_name.endswith('.html'):
+            safe_name += '.html'
+        user_templates_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), 'uploads', 'templates'
+        )
+        os.makedirs(user_templates_dir, exist_ok=True)
+        template_path = os.path.join(user_templates_dir, secure_filename(safe_name))
+    else:
+        template_path, _ = get_template_path(filename)
+
+    # Save HTML file
+    try:
+        with open(template_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+
+        # Save sidecar JSON for re-editing
+        sidecar_path = get_sidecar_path(template_path)
+        with open(sidecar_path, 'w', encoding='utf-8') as f:
+            json.dump(project_data, f)
+
+        return {
+            'success': True,
+            'report': report_dict
+        }
+    except Exception as e:
+        return {'success': False, 'error': str(e)}, 500
+
+
+def get_starter_html(starter_name):
+    """
+    Get starter template HTML for the visual designer.
+
+    Returns table-based email HTML that GrapesJS can parse via setComponents().
+    Each starter provides a different layout so the user isn't starting from scratch.
+
+    CRC: crc-CustomBlocks.md
+    """
+    # Shared preheader (hidden preview text) used by all starters
+    preheader = (
+        '<div style="display:none;font-size:1px;line-height:1px;max-height:0px;max-width:0px;'
+        'opacity:0;overflow:hidden;mso-hide:all;font-family: sans-serif;">'
+        'Preview text that shows in the inbox before opening the email. Edit this!'
+        '</div>'
+    )
+
+    # Shared compliance footer used by all starters
+    footer = (
+        '<table cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px;">'
+        '<tr><td style="padding: 30px 10px; font-family: sans-serif; font-size: 12px; line-height: 18px; text-align: center; color: #888888;">'
+        '<p style="margin: 0 0 10px 0;">Fric &amp; Frac<br>1700 West 39th St. Kansas City, MO 64111</p>'
+        '<p style="margin: 0;">'
+        '<a href="{{ unsubscribe_link }}" style="color: #888888; text-decoration: underline;">Unsubscribe</a>'
+        ' &nbsp;|&nbsp; '
+        '<a href="https://fricandfrac.net/privacy/" style="color: #888888; text-decoration: underline;">Privacy Policy</a>'
+        '</p></td></tr></table>'
+    )
+
+    if starter_name == 'special-offer':
+        return (
+            preheader +
+            '<table cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px; background: #ffffff;">'
+            '<!-- Header -->'
+            '<tr><td style="padding: 20px 0; text-align: center;">'
+            '<img src="/static/images/FNFWebLogo200x50.png" width="200" alt="Logo" border="0">'
+            '</td></tr>'
+            '<!-- Hero Image -->'
+            '<tr><td align="center">'
+            '<img src="/static/images/FNFFront600x300.png" width="600" alt="Special Offer" border="0" style="width: 100%; max-width: 600px; height: auto;">'
+            '</td></tr>'
+            '<!-- Offer Text -->'
+            '<tr><td style="padding: 30px 20px; text-align: center; font-family: sans-serif;">'
+            '<h1 style="color: #2c3e50; font-size: 28px; margin: 0 0 15px 0;">Special Offer for [[CUSTOMER_NAME]]!</h1>'
+            '<p style="color: #555555; font-size: 18px; line-height: 1.6; margin: 0 0 20px 0;">Your exclusive deal details go here. Make it compelling!</p>'
+            '</td></tr>'
+            '<!-- QR Code Section -->'
+            '<tr><td style="padding: 20px; text-align: center; font-family: sans-serif;">'
+            '<!-- QR_CODE_SECTION -->'
+            '<p style="color: #888888; font-size: 14px;">[QR Code will appear here when campaign is sent]</p>'
+            '</td></tr>'
+            '</table>'
+            + footer
+        )
+
+    elif starter_name == 'newsletter':
+        return (
+            preheader +
+            '<table cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px; background: #ffffff;">'
+            '<!-- Header -->'
+            '<tr><td style="padding: 20px 0; text-align: center;">'
+            '<img src="/static/images/FNFWebLogo200x50.png" width="200" alt="Logo" border="0">'
+            '</td></tr>'
+            '<!-- Title -->'
+            '<tr><td style="padding: 20px 20px 10px 20px; text-align: center; font-family: sans-serif;">'
+            '<h1 style="color: #2c3e50; font-size: 24px; margin: 0;">Weekly Newsletter</h1>'
+            '<p style="color: #888888; font-size: 14px; margin: 5px 0 0 0;">Hello, [[CUSTOMER_NAME]]!</p>'
+            '</td></tr>'
+            '<!-- Two Column Section -->'
+            '<tr><td style="padding: 10px 20px;">'
+            '<table cellspacing="0" cellpadding="0" border="0" width="100%">'
+            '<tr>'
+            '<td valign="top" width="48%" style="padding-right: 2%; font-family: sans-serif;">'
+            '<h2 style="color: #2c3e50; font-size: 18px; margin: 0 0 10px 0;">Section One</h2>'
+            '<p style="color: #555555; font-size: 14px; line-height: 1.5; margin: 0;">First column content goes here. Share news, updates, or featured items.</p>'
+            '</td>'
+            '<td valign="top" width="48%" style="padding-left: 2%; font-family: sans-serif;">'
+            '<h2 style="color: #2c3e50; font-size: 18px; margin: 0 0 10px 0;">Section Two</h2>'
+            '<p style="color: #555555; font-size: 14px; line-height: 1.5; margin: 0;">Second column content goes here. Add more details or a different topic.</p>'
+            '</td>'
+            '</tr></table>'
+            '</td></tr>'
+            '<!-- Divider -->'
+            '<tr><td style="padding: 10px 20px;">'
+            '<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 0;">'
+            '</td></tr>'
+            '<!-- Full Width Text -->'
+            '<tr><td style="padding: 10px 20px 30px 20px; font-family: sans-serif;">'
+            '<p style="color: #555555; font-size: 14px; line-height: 1.6; margin: 0;">Additional content area. Use this for announcements, upcoming events, or any full-width message.</p>'
+            '</td></tr>'
+            '</table>'
+            + footer
+        )
+
+    else:  # basic-announcement (default)
+        return (
+            preheader +
+            '<table cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px; background: #ffffff;">'
+            '<!-- Header -->'
+            '<tr><td style="padding: 20px 0; text-align: center;">'
+            '<img src="/static/images/FNFWebLogo200x50.png" width="200" alt="Logo" border="0">'
+            '</td></tr>'
+            '<!-- Content -->'
+            '<tr><td style="padding: 30px 20px; text-align: center; font-family: sans-serif;">'
+            '<h1 style="color: #2c3e50; font-size: 28px; margin: 0 0 20px 0;">Hello, [[CUSTOMER_NAME]]!</h1>'
+            '<p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Your announcement message goes here. Keep it clear and engaging.</p>'
+            '<p style="color: #555555; font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">Add more details as needed to tell your story.</p>'
+            '<!-- CTA Button -->'
+            '<table cellspacing="0" cellpadding="0" border="0" align="center">'
+            '<tr><td class="button-td" style="border-radius: 4px; background: #2563eb;">'
+            '<a class="button-a" href="#" style="background: #2563eb; border: 15px solid #2563eb; font-family: sans-serif; font-size: 14px; line-height: 1.1; text-align: center; text-decoration: none; display: block; border-radius: 4px; font-weight: bold;">'
+            '<span class="button-link" style="color: #ffffff;">Learn More</span>'
+            '</a></td></tr></table>'
+            '</td></tr>'
+            '</table>'
+            + footer
+        )
+
+
+def get_sidecar_path(template_path):
+    """Get the GrapesJS sidecar JSON path for a template HTML file"""
+    return template_path.rsplit('.html', 1)[0] + '.grapes.json'
 
 
 def get_template_path(filename):
@@ -1662,6 +1942,7 @@ def template_edit(filename):
             report = processor.validate(html_content)
             return render_template('template_edit.html',
                                  filename=display_filename,
+                                 route_filename=filename,
                                  html_content=html_content,
                                  report=report)
 
@@ -1676,6 +1957,7 @@ def template_edit(filename):
                 report = processor.validate(html_content)
                 return render_template('template_edit.html',
                                      filename=display_filename,
+                                     route_filename=filename,
                                      html_content=html_content,
                                      report=report)
 
@@ -1715,6 +1997,7 @@ def template_edit(filename):
             report = processor.validate(html_content)
             return render_template('template_edit.html',
                                  filename=display_filename,
+                                 route_filename=filename,
                                  html_content=html_content,
                                  report=report)
 
@@ -1726,6 +2009,7 @@ def template_edit(filename):
 
     return render_template('template_edit.html',
                          filename=display_filename,
+                         route_filename=filename,
                          html_content=html_content,
                          report=report)
 
@@ -1782,6 +2066,10 @@ def template_delete(filename):
 
     try:
         os.remove(template_path)
+        # Also delete sidecar JSON if it exists
+        sidecar_path = get_sidecar_path(template_path)
+        if os.path.exists(sidecar_path):
+            os.remove(sidecar_path)
         flash(f'Template "{display_filename}" deleted successfully!', 'success')
     except Exception as e:
         flash(f'Error deleting template: {str(e)}', 'error')
