@@ -1690,6 +1690,10 @@ def get_starter_html(starter_name):
 
     CRC: crc-CustomBlocks.md
     """
+    # Build absolute image URLs so they work in email clients
+    logo_url = url_for('static', filename='images/FNFWebLogo200x50.png', _external=True)
+    hero_url = url_for('static', filename='images/FNFFront600x300.png', _external=True)
+
     # Shared preheader (hidden preview text) used by all starters
     preheader = (
         '<div style="display:none;font-size:1px;line-height:1px;max-height:0px;max-width:0px;'
@@ -1716,11 +1720,11 @@ def get_starter_html(starter_name):
             '<table cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px; background: #ffffff;">'
             '<!-- Header -->'
             '<tr><td style="padding: 20px 0; text-align: center;">'
-            '<img src="/static/images/FNFWebLogo200x50.png" width="200" alt="Logo" border="0">'
+            '<img src="' + logo_url + '" width="200" alt="Logo" border="0">'
             '</td></tr>'
             '<!-- Hero Image -->'
             '<tr><td align="center">'
-            '<img src="/static/images/FNFFront600x300.png" width="600" alt="Special Offer" border="0" style="width: 100%; max-width: 600px; height: auto;">'
+            '<img src="' + hero_url + '" width="600" alt="Special Offer" border="0" style="width: 100%; max-width: 600px; height: auto;">'
             '</td></tr>'
             '<!-- Offer Text -->'
             '<tr><td style="padding: 30px 20px; text-align: center; font-family: sans-serif;">'
@@ -1742,7 +1746,7 @@ def get_starter_html(starter_name):
             '<table cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px; background: #ffffff;">'
             '<!-- Header -->'
             '<tr><td style="padding: 20px 0; text-align: center;">'
-            '<img src="/static/images/FNFWebLogo200x50.png" width="200" alt="Logo" border="0">'
+            '<img src="' + logo_url + '" width="200" alt="Logo" border="0">'
             '</td></tr>'
             '<!-- Title -->'
             '<tr><td style="padding: 20px 20px 10px 20px; text-align: center; font-family: sans-serif;">'
@@ -1781,7 +1785,7 @@ def get_starter_html(starter_name):
             '<table cellspacing="0" cellpadding="0" border="0" align="center" width="100%" style="max-width: 600px; background: #ffffff;">'
             '<!-- Header -->'
             '<tr><td style="padding: 20px 0; text-align: center;">'
-            '<img src="/static/images/FNFWebLogo200x50.png" width="200" alt="Logo" border="0">'
+            '<img src="' + logo_url + '" width="200" alt="Logo" border="0">'
             '</td></tr>'
             '<!-- Content -->'
             '<tr><td style="padding: 30px 20px; text-align: center; font-family: sans-serif;">'
