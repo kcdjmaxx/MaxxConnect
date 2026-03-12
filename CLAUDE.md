@@ -276,6 +276,35 @@ Customer shows QR → Staff scans → Validate → Show info → Staff confirms 
 - Hourly distribution chart (last 30 days)
 - Recent redemptions table
 
+## Public Signup API
+
+**Endpoint:** `POST /api/public/signup` (CORS-enabled, no auth required)
+
+Used by external signup forms on fricandfrac.net. Accepts JSON, returns JSON.
+
+**Fields:**
+- At least one of `phone` or `email` required
+- `phone`: Phone number (normalized to E.164)
+- `email`: Email address
+- `name`: Customer name (optional)
+- `subscribe_email`: Boolean (default: true if email-only, false if phone provided)
+- `subscribe_sms`: Boolean (default: true if phone provided, false if email-only)
+- `source`: Signup source identifier (optional, stored in segments)
+
+**Behavior:**
+- Email-only signup: creates customer with email, subscribe_email=true, no SMS
+- Phone-only signup: creates customer with placeholder email (`sms_<hash>@sms.placeholder`), subscribe_sms=true
+- Both: creates customer with both, respects explicit subscribe flags
+- Existing customers matched by phone first, then email — updates subscriptions
+- Source field appended to segments as `website-signup,<source>`
+
+**Current consumers:**
+- fricandfrac.net homepage newsletter form (email-only, source: `website-v2-homepage`)
+- fricandfrac.net SMS signup page (phone + email, source: `website-v2-sms-signup`)
+
+**Change history:**
+- 2026-03-12: Made phone optional — supports email-only signups for website newsletter
+
 ## Critical Legal Requirements
 
 **Email:**
