@@ -2164,13 +2164,15 @@ def api_public_signup():
     Accepts JSON payload and returns JSON response.
 
     Required fields:
-    - phone: Phone number (will be normalized to E.164)
+    - At least one of: phone or email
 
     Optional fields:
+    - phone: Phone number (will be normalized to E.164)
     - email: Email address
     - name: Customer name
     - subscribe_email: Boolean (default False)
     - subscribe_sms: Boolean (default True)
+    - source: Signup source identifier
     """
     # Handle CORS preflight
     if request.method == 'OPTIONS':
@@ -2186,27 +2188,30 @@ def api_public_signup():
     phone = data.get('phone', '').strip()
     email = data.get('email', '').strip().lower()
     name = data.get('name', '').strip()
-    subscribe_sms = data.get('subscribe_sms', True)
-    subscribe_email = data.get('subscribe_email', False)
+    source = data.get('source', '').strip()
+    subscribe_sms = data.get('subscribe_sms', True if phone else False)
+    subscribe_email = data.get('subscribe_email', True if email and not phone else False)
 
-    # Phone is required for SMS signup
-    if not phone:
-        response = make_response({'success': False, 'error': 'Phone number is required'})
+    # At least one contact method required
+    if not phone and not email:
+        response = make_response({'success': False, 'error': 'Email or phone number is required'})
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response, 400
 
-    # Normalize phone number
-    normalized_phone = format_phone_number(phone)
-    if not normalized_phone or not validate_phone_number(normalized_phone):
-        response = make_response({'success': False, 'error': 'Invalid phone number format'})
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response, 400
+    # Normalize phone number if provided
+    normalized_phone = None
+    if phone:
+        normalized_phone = format_phone_number(phone)
+        if not normalized_phone or not validate_phone_number(normalized_phone):
+            response = make_response({'success': False, 'error': 'Invalid phone number format'})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response, 400
 
     # Generate placeholder email if not provided (required by database)
     # Format: sms_<hash>@sms.placeholder
     import hashlib as hl
     use_placeholder_email = False
-    if not email:
+    if not email and normalized_phone:
         phone_hash = hl.sha256(normalized_phone.encode()).hexdigest()[:8]
         email = f"sms_{phone_hash}@sms.placeholder"
         subscribe_email = False  # Don't try to email placeholder addresses
@@ -2245,15 +2250,18 @@ def api_public_signup():
             })
         else:
             # Create new customer - email is guaranteed to have a value now
+            segments = 'website-signup'
+            if source:
+                segments = f'website-signup,{source}'
             customer = Customer(
                 email=email,
-                phone=normalized_phone,
+                phone=normalized_phone if normalized_phone else None,
                 name=name if name else None,
                 subscribed=subscribe_email,
                 opted_in_date=datetime.now() if subscribe_email else None,
-                sms_subscribed=subscribe_sms,
-                sms_opted_in_date=datetime.now() if subscribe_sms else None,
-                segments='website-signup'
+                sms_subscribed=subscribe_sms if normalized_phone else False,
+                sms_opted_in_date=datetime.now() if (subscribe_sms and normalized_phone) else None,
+                segments=segments
             )
             db.add(customer)
             db.commit()
